@@ -4,6 +4,8 @@ from sys import exit
 import torch
 from triton.compiler import compiler, make_launcher
 from triton.runtime.driver import driver
+from triton.runtime.jit import JITFunction
+from triton.compiler.code_generator import ast_to_ttir
 import functools
 
 num_warps = 4
@@ -20,6 +22,17 @@ def get_arch():
     prop = torch.cuda.get_device_properties(dev_id)
     return prop.major * 10 + prop.minor
 
+def run_py_kernel(
+    py_fn,  # don't need the torch.jit wrapper
+    instance_desc,
+    signature,
+    constants,
+    **kwargs,
+):
+    jit_fn = JITFunction(py_fn)
+    ttir = ast_to_ttir(jit_fn, signature, instance_desc, constants, debug=True)
+    run_ttir_kernel(ttir, signature=signature, **kwargs)
+
 # TODO avoid redundancy between arguments
 def run_ttir_kernel(
     ttir_path,
@@ -31,9 +44,13 @@ def run_ttir_kernel(
 ):
     arch = get_arch()
     device_id = torch.cuda.current_device()
-    context = ir.context()
-    ttir_module = ir.parse_mlir_module(ttir_path, context)
-    ttir_module.context = context
+    if isinstance(ttir_path, str):
+        context = ir.context()
+        ttir_module = ir.parse_mlir_module(ttir_path, context)
+        ttir_module.context = context
+    else:
+        ttir_module = ttir_path  # already a ttir module
+        context = ttir_module.context
     ttir_module = compiler.optimize_ttir(ttir_module, arch)
     ttgir_module = compiler.ttir_to_ttgir(ttir_module, num_warps)
     ttgir_module = compiler.optimize_ttgir(ttgir_module, num_stages, arch)

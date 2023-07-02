@@ -33,9 +33,23 @@ def run_py_kernel(
     ttir = ast_to_ttir(jit_fn, signature, instance_desc, constants, debug=True)
     run_ttir_kernel(ttir, signature=signature, **kwargs)
 
-# TODO avoid redundancy between arguments
 def run_ttir_kernel(
     ttir_path,
+    **kwargs,
+):
+    arch = get_arch()
+    if isinstance(ttir_path, str):
+        context = ir.context()
+        ttir_module = ir.parse_mlir_module(ttir_path, context)
+        ttir_module.context = context
+    else:
+        ttir_module = ttir_path  # already a ttir module
+    ttir_module = compiler.optimize_ttir(ttir_module, arch)
+    ttgir_module = compiler.ttir_to_ttgir(ttir_module, num_warps)
+    run_ttgir_kernel(ttgir_module, **kwargs)
+
+def run_ttgir_kernel(
+    ttgir_path,
     kernel_name,
     signature,
     grid_x,
@@ -44,15 +58,12 @@ def run_ttir_kernel(
 ):
     arch = get_arch()
     device_id = torch.cuda.current_device()
-    if isinstance(ttir_path, str):
+    if isinstance(ttgir_path, str):
         context = ir.context()
-        ttir_module = ir.parse_mlir_module(ttir_path, context)
-        ttir_module.context = context
+        ttgir_module = ir.parse_mlir_module(ttgir_path, context)
+        ttgir_module.context = context
     else:
-        ttir_module = ttir_path  # already a ttir module
-        context = ttir_module.context
-    ttir_module = compiler.optimize_ttir(ttir_module, arch)
-    ttgir_module = compiler.ttir_to_ttgir(ttir_module, num_warps)
+        ttgir_module = ttgir_path
     ttgir_module = compiler.optimize_ttgir(ttgir_module, num_stages, arch)
     llir = compiler.ttgir_to_llir(ttgir_module, extern_libs, arch)
     

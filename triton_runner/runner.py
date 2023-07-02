@@ -84,12 +84,7 @@ def run_llir_kernel(
 
 def run_ptx_kernel(
     ptx,
-    shared,
-    kernel_name,
-    signature,
-    grid_x,
-    args,
-    verifier,
+    **kwargs,
 ):
     assert isinstance(ptx, str)
     if ptx.endswith(".ptx"):  # is a path
@@ -98,6 +93,20 @@ def run_ptx_kernel(
 
     arch = get_arch()
     cubin = compiler.ptx_to_cubin(ptx, arch)
+    run_cubin_kernel(cubin, **kwargs)
+
+def run_cubin_kernel(
+    cubin,
+    shared,
+    kernel_name,
+    signature,
+    grid_x,
+    args,
+    verifier,
+):
+    if isinstance(cubin, str) and cubin.endswith(".cubin"): # is a path
+        with open(cubin, "rb") as f:
+            cubin = f.read()
 
     # load
     device_id = torch.cuda.current_device()

@@ -1,7 +1,7 @@
 import unittest
 from collections import namedtuple
 
-from triton_runner.runner import run_py_kernel, run_ttir_kernel, run_ttgir_kernel, run_llir_kernel, run_ptx_kernel
+from triton_runner.runner import run_py_kernel, run_ttir_kernel, run_ttgir_kernel, run_llir_kernel, run_ptx_kernel, run_cubin_kernel
 from os import path
 import torch
 import triton
@@ -97,6 +97,26 @@ class TestRunner(unittest.TestCase):
     def test_ptx_sin(self):
         run_ptx_kernel(
             ptx=f"{path.dirname(__file__)}/../triton_runner/sin.ptx",
+            kernel_name="sin_kernel_0d1d2d",
+            signature={0: "*f32", 1: "*f32", 2: "i32"},
+            grid_x=1,
+            args=lambda: (
+                torch.arange(10).to(dtype=torch.float32).cuda(),
+                torch.empty(10).to(dtype=torch.float32).cuda(),
+                10,
+            ),
+            verifier=lambda x, y, numel: (
+                print(f"x {x}"),
+                print(f"y {y}"),
+                print(f"expected {x.sin()}"),
+                self.assertTrue(torch.allclose(y, x.sin())),
+            ),
+            shared=0,
+        )
+
+    def test_cubin_sin(self):
+        run_cubin_kernel(
+            cubin=f"{path.dirname(__file__)}/../triton_runner/sin.cubin",
             kernel_name="sin_kernel_0d1d2d",
             signature={0: "*f32", 1: "*f32", 2: "i32"},
             grid_x=1,

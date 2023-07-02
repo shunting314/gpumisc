@@ -7,6 +7,7 @@ from triton.runtime.driver import driver
 from triton.runtime.jit import JITFunction
 from triton.compiler.code_generator import ast_to_ttir
 import functools
+import subprocess
 
 num_warps = 4
 num_stages = 3
@@ -94,6 +95,16 @@ def run_ptx_kernel(
     arch = get_arch()
     cubin = compiler.ptx_to_cubin(ptx, arch)
     run_cubin_kernel(cubin, **kwargs)
+
+def run_cu_kernel(
+    cu_path,
+    **kwargs,
+):
+    cubin_path = "/tmp/misc.cubin"
+    arch = get_arch()
+    status = subprocess.check_call(f"nvcc -c -cubin -arch=sm_{arch} {cu_path} -o {cubin_path}".split())
+    assert status == 0
+    run_cubin_kernel(cubin_path, **kwargs)
 
 def run_cubin_kernel(
     cubin,

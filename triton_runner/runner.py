@@ -50,14 +50,9 @@ def run_ttir_kernel(
 
 def run_ttgir_kernel(
     ttgir_path,
-    kernel_name,
-    signature,
-    grid_x,
-    args,
-    verifier,
+    **kwargs,
 ):
     arch = get_arch()
-    device_id = torch.cuda.current_device()
     if isinstance(ttgir_path, str):
         context = ir.context()
         ttgir_module = ir.parse_mlir_module(ttgir_path, context)
@@ -66,11 +61,30 @@ def run_ttgir_kernel(
         ttgir_module = ttgir_path
     ttgir_module = compiler.optimize_ttgir(ttgir_module, num_stages, arch)
     llir = compiler.ttgir_to_llir(ttgir_module, extern_libs, arch)
-    
+
     # note: ttgir_to_llir will change ttgir_module.
     # calling get_shared_memory_size on ttgir_module before the call of ttgir_to_llir
     # will result in segfault.
     shared = compiler.get_shared_memory_size(ttgir_module)
+
+    run_llir_kernel(llir, shared=shared, **kwargs)
+
+def run_llir_kernel(
+    llir,
+    shared,
+    kernel_name,
+    signature,
+    grid_x,
+    args,
+    verifier,
+):
+    assert isinstance(llir, str)
+    if llir.endswith(".llir"):  # is a path
+        with open(llir, "r") as f:
+            llir = f.read()
+
+    arch = get_arch()
+    device_id = torch.cuda.current_device()
     ptx = compiler.llir_to_ptx(llir, arch)
     cubin = compiler.ptx_to_cubin(ptx, arch)
 

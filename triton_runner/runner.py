@@ -71,12 +71,7 @@ def run_ttgir_kernel(
 
 def run_llir_kernel(
     llir,
-    shared,
-    kernel_name,
-    signature,
-    grid_x,
-    args,
-    verifier,
+    **kwargs,
 ):
     assert isinstance(llir, str)
     if llir.endswith(".llir"):  # is a path
@@ -84,11 +79,28 @@ def run_llir_kernel(
             llir = f.read()
 
     arch = get_arch()
-    device_id = torch.cuda.current_device()
     ptx = compiler.llir_to_ptx(llir, arch)
+    run_ptx_kernel(ptx, **kwargs)
+
+def run_ptx_kernel(
+    ptx,
+    shared,
+    kernel_name,
+    signature,
+    grid_x,
+    args,
+    verifier,
+):
+    assert isinstance(ptx, str)
+    if ptx.endswith(".ptx"):  # is a path
+        with open(ptx, "r") as f:
+            ptx = f.read()
+
+    arch = get_arch()
     cubin = compiler.ptx_to_cubin(ptx, arch)
 
     # load
+    device_id = torch.cuda.current_device()
     cu_mod, cu_func, n_regs, n_spills = driver.utils.load_binary(kernel_name, cubin, shared, device_id)
 
     # launcher so

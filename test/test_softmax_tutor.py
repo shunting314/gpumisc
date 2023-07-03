@@ -3,6 +3,7 @@ import unittest
 import torch
 import triton
 import triton.language as tl
+from os import path
 from triton_runner.runner import run_py_kernel, run_cu_kernel, run_ttir_kernel
 from collections import namedtuple
 
@@ -31,6 +32,24 @@ class TestRunner(unittest.TestCase):
             py_fn=softmax_kernel,
             instance_desc=namedtuple("instance_descriptor", ["divisible_by_16", "equal_to_1"])((0, 1,), ()),
             constants={3: BLOCK_SIZE},
+            kernel_name="softmax_kernel_0d1d2",
+            signature={0: "*fp32", 1: "*fp32", 2: "i32"},
+            grid_x=NUM_ROW,
+            args=lambda: (
+                torch.randn(NUM_ROW, NUM_COL, device="cuda"),
+                torch.empty(NUM_ROW, NUM_COL, device="cuda"),
+                NUM_COL,
+            ),
+            verifier=lambda x, out, num_col: (
+                print(f"expected sum {torch.softmax(x, axis=1).sum()}"),
+                print(f"actual sum {out.sum()}"),
+                self.assertTrue(torch.allclose(torch.softmax(x, axis=1), out)),
+            ),
+        )
+
+    def test_ttir_softmax(self):
+        run_ttir_kernel(
+            ttir_path=f"{path.dirname(__file__)}/../triton_runner/softmax_tutor.ttir",
             kernel_name="softmax_kernel_0d1d2",
             signature={0: "*fp32", 1: "*fp32", 2: "i32"},
             grid_x=NUM_ROW,

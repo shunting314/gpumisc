@@ -32,6 +32,7 @@ def run_py_kernel(
 ):
     jit_fn = JITFunction(py_fn)
     ttir = ast_to_ttir(jit_fn, signature, instance_desc, constants, debug=True)
+    breakpoint() #TODO
     run_ttir_kernel(ttir, signature=signature, **kwargs)
 
 def run_ttir_kernel(

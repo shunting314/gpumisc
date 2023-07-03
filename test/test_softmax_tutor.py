@@ -4,7 +4,7 @@ import torch
 import triton
 import triton.language as tl
 from os import path
-from triton_runner.runner import run_py_kernel, run_cu_kernel, run_ttir_kernel
+from triton_runner.runner import run_py_kernel, run_cu_kernel, run_ttir_kernel, run_ttgir_kernel
 from collections import namedtuple
 
 NUM_ROW = 1823
@@ -13,8 +13,7 @@ BLOCK_SIZE = 1024
 
 class TestRunner(unittest.TestCase):
     def test_py_softmax(self):
-        def softmax_kernel(
-           input_ptr, output_ptr, n_cols, BLOCK_SIZE: tl.constexpr):
+        def softmax_kernel(input_ptr, output_ptr, n_cols, BLOCK_SIZE: tl.constexpr):
            row_idx = tl.program_id(0)
            row_start_ptr = input_ptr + row_idx * n_cols
            col_offsets = tl.arange(0, BLOCK_SIZE)
@@ -50,6 +49,24 @@ class TestRunner(unittest.TestCase):
     def test_ttir_softmax(self):
         run_ttir_kernel(
             ttir_path=f"{path.dirname(__file__)}/../triton_runner/softmax_tutor.ttir",
+            kernel_name="softmax_kernel_0d1d2",
+            signature={0: "*fp32", 1: "*fp32", 2: "i32"},
+            grid_x=NUM_ROW,
+            args=lambda: (
+                torch.randn(NUM_ROW, NUM_COL, device="cuda"),
+                torch.empty(NUM_ROW, NUM_COL, device="cuda"),
+                NUM_COL,
+            ),
+            verifier=lambda x, out, num_col: (
+                print(f"expected sum {torch.softmax(x, axis=1).sum()}"),
+                print(f"actual sum {out.sum()}"),
+                self.assertTrue(torch.allclose(torch.softmax(x, axis=1), out)),
+            ),
+        )
+
+    def test_ttgir_softmax(self):
+        run_ttgir_kernel(
+            ttgir_path=f"{path.dirname(__file__)}/../triton_runner/softmax_tutor.ttgir",
             kernel_name="softmax_kernel_0d1d2",
             signature={0: "*fp32", 1: "*fp32", 2: "i32"},
             grid_x=NUM_ROW,

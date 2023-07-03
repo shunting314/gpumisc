@@ -2,22 +2,22 @@ module {
   tt.func public @softmax_kernel_0d1d2(%arg0: !tt.ptr<f32> {tt.divisibility = 16 : i32}, %arg1: !tt.ptr<f32> {tt.divisibility = 16 : i32}, %arg2: i32) attributes {noinline = false} {
     %0 = tt.get_program_id x : i32
     %1 = arith.muli %0, %arg2 : i32
-    %2 = tt.addptr %arg0, %1 : !tt.ptr<f32>, i32
+    %2 = tt.addptr %arg0, %1 : !tt.ptr<f32>, i32 // row_start_ptr
     %3 = tt.make_range {end = 1024 : i32, start = 0 : i32} : tensor<1024xi32>
     %4 = tt.splat %2 : (!tt.ptr<f32>) -> tensor<1024x!tt.ptr<f32>>
-    %5 = tt.addptr %4, %3 : tensor<1024x!tt.ptr<f32>>, tensor<1024xi32>
+    %5 = tt.addptr %4, %3 : tensor<1024x!tt.ptr<f32>>, tensor<1024xi32> // input_ptrs
     %6 = tt.splat %arg2 : (i32) -> tensor<1024xi32>
-    %7 = arith.cmpi slt, %3, %6 : tensor<1024xi32>
-    %cst = arith.constant 0xFF800000 : f32
-    %cst_0 = arith.constant dense<0xFF800000> : tensor<1024xf32>
-    %8 = tt.load %5, %7, %cst_0 {cache = 1 : i32, evict = 1 : i32, isVolatile = false} : tensor<1024xf32>
-    %9 = tt.call @max__fp32S1024S__1cconstexpr_0__2cconstexpr_False__3cconstexpr_True_(%8) : (tensor<1024xf32>) -> f32
-    %10 = tt.splat %9 : (f32) -> tensor<1024xf32>
+    %7 = arith.cmpi slt, %3, %6 : tensor<1024xi32> // mask
+    %cst = arith.constant 0xFF800000 : f32 // other = -inf. Created by builder.get_fp32
+    %cst_0 = arith.constant dense<0xFF800000> : tensor<1024xf32> // a folded broadcast for other
+    %8 = tt.load %5, %7, %cst_0 {cache = 1 : i32, evict = 1 : i32, isVolatile = false} : tensor<1024xf32> // row
+    %9 = tt.call @max__fp32S1024S__1cconstexpr_0__2cconstexpr_False__3cconstexpr_True_(%8) : (tensor<1024xf32>) -> f32 // call max
+    %10 = tt.splat %9 : (f32) -> tensor<1024xf32> // broadcasted max
     %11 = arith.subf %8, %10 : tensor<1024xf32>
     %12 = math.exp %11 : tensor<1024xf32>
-    %13 = tt.call @sum__fp32S1024S__1cconstexpr_0_(%12) : (tensor<1024xf32>) -> f32
+    %13 = tt.call @sum__fp32S1024S__1cconstexpr_0_(%12) : (tensor<1024xf32>) -> f32 // call sum
     %14 = tt.splat %13 : (f32) -> tensor<1024xf32>
-    %15 = arith.divf %12, %14 : tensor<1024xf32>
+    %15 = arith.divf %12, %14 : tensor<1024xf32> // softmax_output
     %16 = arith.muli %0, %arg2 : i32
     %17 = tt.addptr %arg1, %16 : !tt.ptr<f32>, i32
     %18 = tt.splat %17 : (!tt.ptr<f32>) -> tensor<1024x!tt.ptr<f32>>

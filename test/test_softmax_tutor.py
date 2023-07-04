@@ -82,6 +82,25 @@ class TestRunner(unittest.TestCase):
             ),
         )
 
+    def test_cu_softmax(self):
+        run_cu_kernel(
+            cu_path=f"{path.dirname(__file__)}/../triton_runner/softmax.cu",
+            kernel_name="softmax_kernel_0d1d2",
+            signature={0: "*fp32", 1: "*fp32", 2: "i32"},
+            grid_x=NUM_ROW,
+            args=lambda: (
+                torch.randn(NUM_ROW, NUM_COL, device="cuda"),
+                torch.empty(NUM_ROW, NUM_COL, device="cuda"),
+                NUM_COL,
+            ),
+            verifier=lambda x, out, num_col: (
+                print(f"expected sum {torch.softmax(x, axis=1).sum()}"),
+                print(f"actual sum {out.sum()}"),
+                self.assertTrue(torch.allclose(torch.softmax(x, axis=1), out)),
+            ),
+            shared=512,  # triton use 512 shared memory for each block
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,13 +1,14 @@
 import unittest
 import triton.language as tl
-from triton_runner.runner import run_py_kernel
+from triton_runner.runner import run_py_kernel, run_ttir_kernel
 from collections import namedtuple
 import torch
 import triton
+from os import path
 
-X_BLOCK_SIZE = 1
+X_BLOCK_SIZE = 2
 R_BLOCK_SIZE = 256  # may not be optimal or not equal to the default picked by inductor
-NUMROW = 2
+NUMROW = 4
 NUMCOL = 2048
 
 class TestRunner(unittest.TestCase):
@@ -17,7 +18,7 @@ class TestRunner(unittest.TestCase):
         """
         def sumrow_kernel(
             in_ptr, out_ptr, xnumel, rnumel, XBLOCK: tl.constexpr, RBLOCK: tl.constexpr):
-            xnumel = 2
+            xnumel = 4
             rnumel = 2048
             xoffset = tl.program_id(0) * XBLOCK
             xindex = xoffset + tl.arange(0, XBLOCK)[:, None]
@@ -53,8 +54,27 @@ class TestRunner(unittest.TestCase):
                 print(f"actual sum {y.sum()}"),
                 self.assertTrue(torch.allclose(y, x.sum(dim=-1))),
             ),
-
         )
+
+    def test_ttir_sumrow(self):
+        run_ttir_kernel(
+            ttir_path=f"{path.dirname(__file__)}/../triton_runner/sumrow.ttir",
+            kernel_name="sumrow_kernel_0d1d23d",
+            signature={0: "*fp32", 1: "*fp32", 2: "i32", 3: "i32"},
+            grid_x=triton.cdiv(NUMROW, X_BLOCK_SIZE),
+            args=lambda: (
+                torch.rand(NUMROW, NUMCOL, device="cuda"),
+                torch.empty(NUMROW, device="cuda"),
+                NUMROW,
+                NUMCOL,
+            ),
+            verifier=lambda x, y, xnumel, rnumel: (
+                print(f"expected sum {x.sum(dim=-1).sum()}"),
+                print(f"actual sum {y.sum()}"),
+                self.assertTrue(torch.allclose(y, x.sum(dim=-1))),
+            ),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

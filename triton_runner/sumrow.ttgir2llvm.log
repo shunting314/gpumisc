@@ -1,0 +1,2165 @@
+// -----// IR Dump After TritonGPUCoalesce (tritongpu-coalesce) //----- //
+#blocked = #triton_gpu.blocked<{sizePerThread = [1, 1], threadsPerWarp = [2, 16], warpsPerCTA = [1, 4], order = [0, 1]}>
+#blocked1 = #triton_gpu.blocked<{sizePerThread = [1, 1], threadsPerWarp = [1, 32], warpsPerCTA = [1, 4], order = [0, 1]}>
+#blocked2 = #triton_gpu.blocked<{sizePerThread = [1], threadsPerWarp = [32], warpsPerCTA = [4], order = [0]}>
+#blocked3 = #triton_gpu.blocked<{sizePerThread = [1, 1], threadsPerWarp = [32, 1], warpsPerCTA = [4, 1], order = [0, 1]}>
+#blocked4 = #triton_gpu.blocked<{sizePerThread = [1, 4], threadsPerWarp = [1, 32], warpsPerCTA = [2, 2], order = [1, 0]}>
+module attributes {"triton_gpu.num-warps" = 4 : i32, "triton_gpu.threads-per-warp" = 32 : i32} {
+  tt.func public @sumrow_kernel_0d1d23d(%arg0: !tt.ptr<f32> {tt.divisibility = 16 : i32}, %arg1: !tt.ptr<f32> {tt.divisibility = 16 : i32}, %arg2: i32, %arg3: i32 {tt.divisibility = 16 : i32}) attributes {noinline = false} {
+    %c256_i32 = arith.constant 256 : i32
+    %c2048_i32 = arith.constant 2048 : i32
+    %c0_i32 = arith.constant 0 : i32
+    %cst = arith.constant dense<2048> : tensor<2x1xi32, #blocked>
+    %cst_0 = arith.constant dense<2048> : tensor<1x256xi32, #blocked1>
+    %cst_1 = arith.constant dense<0.000000e+00> : tensor<2x256xf32, #blocked>
+    %cst_2 = arith.constant dense<4> : tensor<2x1xi32, #blocked>
+    %c2_i32 = arith.constant 2 : i32
+    %0 = tt.get_program_id x : i32
+    %1 = arith.muli %0, %c2_i32 : i32
+    %2 = tt.make_range {end = 2 : i32, start = 0 : i32} : tensor<2xi32, #blocked2>
+    %3 = triton_gpu.convert_layout %2 : (tensor<2xi32, #blocked2>) -> tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked3}>>
+    %4 = tt.expand_dims %3 {axis = 1 : i32} : (tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked3}>>) -> tensor<2x1xi32, #blocked3>
+    %5 = triton_gpu.convert_layout %4 : (tensor<2x1xi32, #blocked3>) -> tensor<2x1xi32, #blocked>
+    %6 = tt.splat %1 : (i32) -> tensor<2x1xi32, #blocked>
+    %7 = arith.addi %6, %5 : tensor<2x1xi32, #blocked>
+    %8 = "triton_gpu.cmpi"(%7, %cst_2) <{predicate = 2 : i64}> : (tensor<2x1xi32, #blocked>, tensor<2x1xi32, #blocked>) -> tensor<2x1xi1, #blocked>
+    %9 = tt.make_range {end = 256 : i32, start = 0 : i32} : tensor<256xi32, #blocked2>
+    %10 = triton_gpu.convert_layout %9 : (tensor<256xi32, #blocked2>) -> tensor<256xi32, #triton_gpu.slice<{dim = 0, parent = #blocked1}>>
+    %11 = tt.expand_dims %10 {axis = 0 : i32} : (tensor<256xi32, #triton_gpu.slice<{dim = 0, parent = #blocked1}>>) -> tensor<1x256xi32, #blocked1>
+    %12 = arith.muli %7, %cst : tensor<2x1xi32, #blocked>
+    %13 = tt.broadcast %12 : (tensor<2x1xi32, #blocked>) -> tensor<2x256xi32, #blocked>
+    %14 = tt.splat %arg0 : (!tt.ptr<f32>) -> tensor<2x256x!tt.ptr<f32>, #blocked>
+    %15 = tt.broadcast %8 : (tensor<2x1xi1, #blocked>) -> tensor<2x256xi1, #blocked>
+    %16 = scf.for %arg4 = %c0_i32 to %c2048_i32 step %c256_i32 iter_args(%arg5 = %cst_1) -> (tensor<2x256xf32, #blocked>)  : i32 {
+      %27 = tt.splat %arg4 : (i32) -> tensor<1x256xi32, #blocked1>
+      %28 = arith.addi %27, %11 : tensor<1x256xi32, #blocked1>
+      %29 = "triton_gpu.cmpi"(%28, %cst_0) <{predicate = 2 : i64}> : (tensor<1x256xi32, #blocked1>, tensor<1x256xi32, #blocked1>) -> tensor<1x256xi1, #blocked1>
+      %30 = tt.broadcast %28 : (tensor<1x256xi32, #blocked1>) -> tensor<2x256xi32, #blocked1>
+      %31 = triton_gpu.convert_layout %30 : (tensor<2x256xi32, #blocked1>) -> tensor<2x256xi32, #blocked>
+      %32 = arith.addi %31, %13 : tensor<2x256xi32, #blocked>
+      %33 = tt.addptr %14, %32 : tensor<2x256x!tt.ptr<f32>, #blocked>, tensor<2x256xi32, #blocked>
+      %34 = tt.broadcast %29 : (tensor<1x256xi1, #blocked1>) -> tensor<2x256xi1, #blocked1>
+      %35 = triton_gpu.convert_layout %34 : (tensor<2x256xi1, #blocked1>) -> tensor<2x256xi1, #blocked>
+      %36 = arith.andi %35, %15 : tensor<2x256xi1, #blocked>
+      %37 = triton_gpu.convert_layout %33 : (tensor<2x256x!tt.ptr<f32>, #blocked>) -> tensor<2x256x!tt.ptr<f32>, #blocked4>
+      %38 = triton_gpu.convert_layout %36 : (tensor<2x256xi1, #blocked>) -> tensor<2x256xi1, #blocked4>
+      %39 = triton_gpu.convert_layout %cst_1 : (tensor<2x256xf32, #blocked>) -> tensor<2x256xf32, #blocked4>
+      %40 = tt.load %37, %38, %39 {cache = 1 : i32, evict = 1 : i32, isVolatile = false} : tensor<2x256xf32, #blocked4>
+      %41 = triton_gpu.convert_layout %40 : (tensor<2x256xf32, #blocked4>) -> tensor<2x256xf32, #blocked>
+      %42 = arith.addf %arg5, %41 : tensor<2x256xf32, #blocked>
+      %43 = "triton_gpu.select"(%36, %42, %arg5) : (tensor<2x256xi1, #blocked>, tensor<2x256xf32, #blocked>, tensor<2x256xf32, #blocked>) -> tensor<2x256xf32, #blocked>
+      scf.yield %43 : tensor<2x256xf32, #blocked>
+    }
+    %17 = "tt.reduce"(%16) <{axis = 1 : i32}> ({
+    ^bb0(%arg4: f32, %arg5: f32):
+      %27 = arith.addf %arg4, %arg5 : f32
+      tt.reduce.return %27 : f32
+    }) : (tensor<2x256xf32, #blocked>) -> tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>
+    %18 = triton_gpu.convert_layout %17 : (tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>) -> tensor<2xf32, #blocked2>
+    %19 = triton_gpu.convert_layout %18 : (tensor<2xf32, #blocked2>) -> tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked3}>>
+    %20 = tt.expand_dims %19 {axis = 1 : i32} : (tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked3}>>) -> tensor<2x1xf32, #blocked3>
+    %21 = triton_gpu.convert_layout %20 : (tensor<2x1xf32, #blocked3>) -> tensor<2x1xf32, #blocked>
+    %22 = tt.splat %arg1 : (!tt.ptr<f32>) -> tensor<2x1x!tt.ptr<f32>, #blocked>
+    %23 = tt.addptr %22, %7 : tensor<2x1x!tt.ptr<f32>, #blocked>, tensor<2x1xi32, #blocked>
+    %24 = triton_gpu.convert_layout %23 : (tensor<2x1x!tt.ptr<f32>, #blocked>) -> tensor<2x1x!tt.ptr<f32>, #blocked>
+    %25 = triton_gpu.convert_layout %21 : (tensor<2x1xf32, #blocked>) -> tensor<2x1xf32, #blocked>
+    %26 = triton_gpu.convert_layout %8 : (tensor<2x1xi1, #blocked>) -> tensor<2x1xi1, #blocked>
+    tt.store %24, %25, %26 {cache = 1 : i32, evict = 1 : i32} : tensor<2x1xf32, #blocked>
+    tt.return
+  }
+}
+
+
+// -----// IR Dump After TritonGPURemoveLayoutConversions (tritongpu-remove-layout-conversions) //----- //
+#blocked = #triton_gpu.blocked<{sizePerThread = [1, 4], threadsPerWarp = [1, 32], warpsPerCTA = [2, 2], order = [1, 0]}>
+#blocked1 = #triton_gpu.blocked<{sizePerThread = [1, 1], threadsPerWarp = [2, 16], warpsPerCTA = [1, 4], order = [0, 1]}>
+module attributes {"triton_gpu.num-warps" = 4 : i32, "triton_gpu.threads-per-warp" = 32 : i32} {
+  tt.func public @sumrow_kernel_0d1d23d(%arg0: !tt.ptr<f32> {tt.divisibility = 16 : i32}, %arg1: !tt.ptr<f32> {tt.divisibility = 16 : i32}, %arg2: i32, %arg3: i32 {tt.divisibility = 16 : i32}) attributes {noinline = false} {
+    %cst = arith.constant dense<0.000000e+00> : tensor<2x256xf32, #blocked>
+    %cst_0 = arith.constant dense<2048> : tensor<2x1xi32, #blocked>
+    %cst_1 = arith.constant dense<2048> : tensor<1x256xi32, #blocked>
+    %cst_2 = arith.constant dense<4> : tensor<2x1xi32, #blocked>
+    %c256_i32 = arith.constant 256 : i32
+    %c2048_i32 = arith.constant 2048 : i32
+    %c0_i32 = arith.constant 0 : i32
+    %cst_3 = arith.constant dense<4> : tensor<2x1xi32, #blocked1>
+    %c2_i32 = arith.constant 2 : i32
+    %0 = tt.get_program_id x : i32
+    %1 = arith.muli %0, %c2_i32 : i32
+    %2 = tt.make_range {end = 2 : i32, start = 0 : i32} : tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked1}>>
+    %3 = tt.make_range {end = 2 : i32, start = 0 : i32} : tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>
+    %4 = tt.make_range {end = 2 : i32, start = 0 : i32} : tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>
+    %5 = tt.make_range {end = 2 : i32, start = 0 : i32} : tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>
+    %6 = tt.expand_dims %2 {axis = 1 : i32} : (tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked1}>>) -> tensor<2x1xi32, #blocked1>
+    %7 = tt.expand_dims %3 {axis = 1 : i32} : (tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>) -> tensor<2x1xi32, #blocked>
+    %8 = tt.expand_dims %4 {axis = 1 : i32} : (tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>) -> tensor<2x1xi32, #blocked>
+    %9 = tt.expand_dims %5 {axis = 1 : i32} : (tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>) -> tensor<2x1xi32, #blocked>
+    %10 = tt.splat %1 : (i32) -> tensor<2x1xi32, #blocked1>
+    %11 = tt.splat %1 : (i32) -> tensor<2x1xi32, #blocked>
+    %12 = tt.splat %1 : (i32) -> tensor<2x1xi32, #blocked>
+    %13 = tt.splat %1 : (i32) -> tensor<2x1xi32, #blocked>
+    %14 = arith.addi %10, %6 : tensor<2x1xi32, #blocked1>
+    %15 = arith.addi %11, %7 : tensor<2x1xi32, #blocked>
+    %16 = arith.addi %12, %8 : tensor<2x1xi32, #blocked>
+    %17 = arith.addi %13, %9 : tensor<2x1xi32, #blocked>
+    %18 = "triton_gpu.cmpi"(%14, %cst_3) <{predicate = 2 : i64}> : (tensor<2x1xi32, #blocked1>, tensor<2x1xi32, #blocked1>) -> tensor<2x1xi1, #blocked1>
+    %19 = "triton_gpu.cmpi"(%16, %cst_2) <{predicate = 2 : i64}> : (tensor<2x1xi32, #blocked>, tensor<2x1xi32, #blocked>) -> tensor<2x1xi1, #blocked>
+    %20 = "triton_gpu.cmpi"(%17, %cst_2) <{predicate = 2 : i64}> : (tensor<2x1xi32, #blocked>, tensor<2x1xi32, #blocked>) -> tensor<2x1xi1, #blocked>
+    %21 = tt.make_range {end = 256 : i32, start = 0 : i32} : tensor<256xi32, #triton_gpu.slice<{dim = 0, parent = #blocked}>>
+    %22 = tt.make_range {end = 256 : i32, start = 0 : i32} : tensor<256xi32, #triton_gpu.slice<{dim = 0, parent = #blocked}>>
+    %23 = tt.make_range {end = 256 : i32, start = 0 : i32} : tensor<256xi32, #triton_gpu.slice<{dim = 0, parent = #blocked}>>
+    %24 = tt.expand_dims %21 {axis = 0 : i32} : (tensor<256xi32, #triton_gpu.slice<{dim = 0, parent = #blocked}>>) -> tensor<1x256xi32, #blocked>
+    %25 = tt.expand_dims %22 {axis = 0 : i32} : (tensor<256xi32, #triton_gpu.slice<{dim = 0, parent = #blocked}>>) -> tensor<1x256xi32, #blocked>
+    %26 = tt.expand_dims %23 {axis = 0 : i32} : (tensor<256xi32, #triton_gpu.slice<{dim = 0, parent = #blocked}>>) -> tensor<1x256xi32, #blocked>
+    %27 = arith.muli %15, %cst_0 : tensor<2x1xi32, #blocked>
+    %28 = tt.broadcast %27 : (tensor<2x1xi32, #blocked>) -> tensor<2x256xi32, #blocked>
+    %29 = tt.splat %arg0 : (!tt.ptr<f32>) -> tensor<2x256x!tt.ptr<f32>, #blocked>
+    %30 = tt.broadcast %19 : (tensor<2x1xi1, #blocked>) -> tensor<2x256xi1, #blocked>
+    %31 = tt.broadcast %20 : (tensor<2x1xi1, #blocked>) -> tensor<2x256xi1, #blocked>
+    %32 = scf.for %arg4 = %c0_i32 to %c2048_i32 step %c256_i32 iter_args(%arg5 = %cst) -> (tensor<2x256xf32, #blocked>)  : i32 {
+      %38 = tt.splat %arg4 : (i32) -> tensor<1x256xi32, #blocked>
+      %39 = tt.splat %arg4 : (i32) -> tensor<1x256xi32, #blocked>
+      %40 = tt.splat %arg4 : (i32) -> tensor<1x256xi32, #blocked>
+      %41 = arith.addi %38, %24 : tensor<1x256xi32, #blocked>
+      %42 = arith.addi %39, %25 : tensor<1x256xi32, #blocked>
+      %43 = arith.addi %40, %26 : tensor<1x256xi32, #blocked>
+      %44 = "triton_gpu.cmpi"(%42, %cst_1) <{predicate = 2 : i64}> : (tensor<1x256xi32, #blocked>, tensor<1x256xi32, #blocked>) -> tensor<1x256xi1, #blocked>
+      %45 = "triton_gpu.cmpi"(%43, %cst_1) <{predicate = 2 : i64}> : (tensor<1x256xi32, #blocked>, tensor<1x256xi32, #blocked>) -> tensor<1x256xi1, #blocked>
+      %46 = tt.broadcast %41 : (tensor<1x256xi32, #blocked>) -> tensor<2x256xi32, #blocked>
+      %47 = arith.addi %46, %28 : tensor<2x256xi32, #blocked>
+      %48 = tt.addptr %29, %47 : tensor<2x256x!tt.ptr<f32>, #blocked>, tensor<2x256xi32, #blocked>
+      %49 = tt.broadcast %44 : (tensor<1x256xi1, #blocked>) -> tensor<2x256xi1, #blocked>
+      %50 = tt.broadcast %45 : (tensor<1x256xi1, #blocked>) -> tensor<2x256xi1, #blocked>
+      %51 = arith.andi %49, %30 : tensor<2x256xi1, #blocked>
+      %52 = arith.andi %50, %31 : tensor<2x256xi1, #blocked>
+      %53 = tt.load %48, %51, %cst {cache = 1 : i32, evict = 1 : i32, isVolatile = false} : tensor<2x256xf32, #blocked>
+      %54 = arith.addf %arg5, %53 : tensor<2x256xf32, #blocked>
+      %55 = "triton_gpu.select"(%52, %54, %arg5) : (tensor<2x256xi1, #blocked>, tensor<2x256xf32, #blocked>, tensor<2x256xf32, #blocked>) -> tensor<2x256xf32, #blocked>
+      scf.yield %55 : tensor<2x256xf32, #blocked>
+    }
+    %33 = "tt.reduce"(%32) <{axis = 1 : i32}> ({
+    ^bb0(%arg4: f32, %arg5: f32):
+      %38 = arith.addf %arg4, %arg5 : f32
+      tt.reduce.return %38 : f32
+    }) : (tensor<2x256xf32, #blocked>) -> tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>
+    %34 = triton_gpu.convert_layout %33 : (tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>) -> tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked1}>>
+    %35 = tt.expand_dims %34 {axis = 1 : i32} : (tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked1}>>) -> tensor<2x1xf32, #blocked1>
+    %36 = tt.splat %arg1 : (!tt.ptr<f32>) -> tensor<2x1x!tt.ptr<f32>, #blocked1>
+    %37 = tt.addptr %36, %14 : tensor<2x1x!tt.ptr<f32>, #blocked1>, tensor<2x1xi32, #blocked1>
+    tt.store %37, %35, %18 {cache = 1 : i32, evict = 1 : i32} : tensor<2x1xf32, #blocked1>
+    tt.return
+  }
+}
+
+
+// -----// IR Dump After CSE (cse) //----- //
+#blocked = #triton_gpu.blocked<{sizePerThread = [1, 4], threadsPerWarp = [1, 32], warpsPerCTA = [2, 2], order = [1, 0]}>
+#blocked1 = #triton_gpu.blocked<{sizePerThread = [1, 1], threadsPerWarp = [2, 16], warpsPerCTA = [1, 4], order = [0, 1]}>
+module attributes {"triton_gpu.num-warps" = 4 : i32, "triton_gpu.threads-per-warp" = 32 : i32} {
+  tt.func public @sumrow_kernel_0d1d23d(%arg0: !tt.ptr<f32> {tt.divisibility = 16 : i32}, %arg1: !tt.ptr<f32> {tt.divisibility = 16 : i32}, %arg2: i32, %arg3: i32 {tt.divisibility = 16 : i32}) attributes {noinline = false} {
+    %cst = arith.constant dense<0.000000e+00> : tensor<2x256xf32, #blocked>
+    %cst_0 = arith.constant dense<2048> : tensor<2x1xi32, #blocked>
+    %cst_1 = arith.constant dense<2048> : tensor<1x256xi32, #blocked>
+    %cst_2 = arith.constant dense<4> : tensor<2x1xi32, #blocked>
+    %c256_i32 = arith.constant 256 : i32
+    %c2048_i32 = arith.constant 2048 : i32
+    %c0_i32 = arith.constant 0 : i32
+    %cst_3 = arith.constant dense<4> : tensor<2x1xi32, #blocked1>
+    %c2_i32 = arith.constant 2 : i32
+    %0 = tt.get_program_id x : i32
+    %1 = arith.muli %0, %c2_i32 : i32
+    %2 = tt.make_range {end = 2 : i32, start = 0 : i32} : tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked1}>>
+    %3 = tt.make_range {end = 2 : i32, start = 0 : i32} : tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>
+    %4 = tt.expand_dims %2 {axis = 1 : i32} : (tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked1}>>) -> tensor<2x1xi32, #blocked1>
+    %5 = tt.expand_dims %3 {axis = 1 : i32} : (tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>) -> tensor<2x1xi32, #blocked>
+    %6 = tt.splat %1 : (i32) -> tensor<2x1xi32, #blocked1>
+    %7 = tt.splat %1 : (i32) -> tensor<2x1xi32, #blocked>
+    %8 = arith.addi %6, %4 : tensor<2x1xi32, #blocked1>
+    %9 = arith.addi %7, %5 : tensor<2x1xi32, #blocked>
+    %10 = "triton_gpu.cmpi"(%8, %cst_3) <{predicate = 2 : i64}> : (tensor<2x1xi32, #blocked1>, tensor<2x1xi32, #blocked1>) -> tensor<2x1xi1, #blocked1>
+    %11 = "triton_gpu.cmpi"(%9, %cst_2) <{predicate = 2 : i64}> : (tensor<2x1xi32, #blocked>, tensor<2x1xi32, #blocked>) -> tensor<2x1xi1, #blocked>
+    %12 = tt.make_range {end = 256 : i32, start = 0 : i32} : tensor<256xi32, #triton_gpu.slice<{dim = 0, parent = #blocked}>>
+    %13 = tt.expand_dims %12 {axis = 0 : i32} : (tensor<256xi32, #triton_gpu.slice<{dim = 0, parent = #blocked}>>) -> tensor<1x256xi32, #blocked>
+    %14 = arith.muli %9, %cst_0 : tensor<2x1xi32, #blocked>
+    %15 = tt.broadcast %14 : (tensor<2x1xi32, #blocked>) -> tensor<2x256xi32, #blocked>
+    %16 = tt.splat %arg0 : (!tt.ptr<f32>) -> tensor<2x256x!tt.ptr<f32>, #blocked>
+    %17 = tt.broadcast %11 : (tensor<2x1xi1, #blocked>) -> tensor<2x256xi1, #blocked>
+    %18 = scf.for %arg4 = %c0_i32 to %c2048_i32 step %c256_i32 iter_args(%arg5 = %cst) -> (tensor<2x256xf32, #blocked>)  : i32 {
+      %24 = tt.splat %arg4 : (i32) -> tensor<1x256xi32, #blocked>
+      %25 = arith.addi %24, %13 : tensor<1x256xi32, #blocked>
+      %26 = "triton_gpu.cmpi"(%25, %cst_1) <{predicate = 2 : i64}> : (tensor<1x256xi32, #blocked>, tensor<1x256xi32, #blocked>) -> tensor<1x256xi1, #blocked>
+      %27 = tt.broadcast %25 : (tensor<1x256xi32, #blocked>) -> tensor<2x256xi32, #blocked>
+      %28 = arith.addi %27, %15 : tensor<2x256xi32, #blocked>
+      %29 = tt.addptr %16, %28 : tensor<2x256x!tt.ptr<f32>, #blocked>, tensor<2x256xi32, #blocked>
+      %30 = tt.broadcast %26 : (tensor<1x256xi1, #blocked>) -> tensor<2x256xi1, #blocked>
+      %31 = arith.andi %30, %17 : tensor<2x256xi1, #blocked>
+      %32 = tt.load %29, %31, %cst {cache = 1 : i32, evict = 1 : i32, isVolatile = false} : tensor<2x256xf32, #blocked>
+      %33 = arith.addf %arg5, %32 : tensor<2x256xf32, #blocked>
+      %34 = "triton_gpu.select"(%31, %33, %arg5) : (tensor<2x256xi1, #blocked>, tensor<2x256xf32, #blocked>, tensor<2x256xf32, #blocked>) -> tensor<2x256xf32, #blocked>
+      scf.yield %34 : tensor<2x256xf32, #blocked>
+    }
+    %19 = "tt.reduce"(%18) <{axis = 1 : i32}> ({
+    ^bb0(%arg4: f32, %arg5: f32):
+      %24 = arith.addf %arg4, %arg5 : f32
+      tt.reduce.return %24 : f32
+    }) : (tensor<2x256xf32, #blocked>) -> tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>
+    %20 = triton_gpu.convert_layout %19 : (tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>) -> tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked1}>>
+    %21 = tt.expand_dims %20 {axis = 1 : i32} : (tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked1}>>) -> tensor<2x1xf32, #blocked1>
+    %22 = tt.splat %arg1 : (!tt.ptr<f32>) -> tensor<2x1x!tt.ptr<f32>, #blocked1>
+    %23 = tt.addptr %22, %8 : tensor<2x1x!tt.ptr<f32>, #blocked1>, tensor<2x1xi32, #blocked1>
+    tt.store %23, %21, %10 {cache = 1 : i32, evict = 1 : i32} : tensor<2x1xf32, #blocked1>
+    tt.return
+  }
+}
+
+
+// -----// IR Dump After SCFToControlFlow (convert-scf-to-cf) //----- //
+#blocked = #triton_gpu.blocked<{sizePerThread = [1, 4], threadsPerWarp = [1, 32], warpsPerCTA = [2, 2], order = [1, 0]}>
+#blocked1 = #triton_gpu.blocked<{sizePerThread = [1, 1], threadsPerWarp = [2, 16], warpsPerCTA = [1, 4], order = [0, 1]}>
+module attributes {"triton_gpu.num-warps" = 4 : i32, "triton_gpu.threads-per-warp" = 32 : i32} {
+  tt.func public @sumrow_kernel_0d1d23d(%arg0: !tt.ptr<f32> {tt.divisibility = 16 : i32}, %arg1: !tt.ptr<f32> {tt.divisibility = 16 : i32}, %arg2: i32, %arg3: i32 {tt.divisibility = 16 : i32}) attributes {noinline = false} {
+    %cst = arith.constant dense<0.000000e+00> : tensor<2x256xf32, #blocked>
+    %cst_0 = arith.constant dense<2048> : tensor<2x1xi32, #blocked>
+    %cst_1 = arith.constant dense<2048> : tensor<1x256xi32, #blocked>
+    %cst_2 = arith.constant dense<4> : tensor<2x1xi32, #blocked>
+    %c256_i32 = arith.constant 256 : i32
+    %c2048_i32 = arith.constant 2048 : i32
+    %c0_i32 = arith.constant 0 : i32
+    %cst_3 = arith.constant dense<4> : tensor<2x1xi32, #blocked1>
+    %c2_i32 = arith.constant 2 : i32
+    %0 = tt.get_program_id x : i32
+    %1 = arith.muli %0, %c2_i32 : i32
+    %2 = tt.make_range {end = 2 : i32, start = 0 : i32} : tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked1}>>
+    %3 = tt.make_range {end = 2 : i32, start = 0 : i32} : tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>
+    %4 = tt.expand_dims %2 {axis = 1 : i32} : (tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked1}>>) -> tensor<2x1xi32, #blocked1>
+    %5 = tt.expand_dims %3 {axis = 1 : i32} : (tensor<2xi32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>) -> tensor<2x1xi32, #blocked>
+    %6 = tt.splat %1 : (i32) -> tensor<2x1xi32, #blocked1>
+    %7 = tt.splat %1 : (i32) -> tensor<2x1xi32, #blocked>
+    %8 = arith.addi %6, %4 : tensor<2x1xi32, #blocked1>
+    %9 = arith.addi %7, %5 : tensor<2x1xi32, #blocked>
+    %10 = "triton_gpu.cmpi"(%8, %cst_3) <{predicate = 2 : i64}> : (tensor<2x1xi32, #blocked1>, tensor<2x1xi32, #blocked1>) -> tensor<2x1xi1, #blocked1>
+    %11 = "triton_gpu.cmpi"(%9, %cst_2) <{predicate = 2 : i64}> : (tensor<2x1xi32, #blocked>, tensor<2x1xi32, #blocked>) -> tensor<2x1xi1, #blocked>
+    %12 = tt.make_range {end = 256 : i32, start = 0 : i32} : tensor<256xi32, #triton_gpu.slice<{dim = 0, parent = #blocked}>>
+    %13 = tt.expand_dims %12 {axis = 0 : i32} : (tensor<256xi32, #triton_gpu.slice<{dim = 0, parent = #blocked}>>) -> tensor<1x256xi32, #blocked>
+    %14 = arith.muli %9, %cst_0 : tensor<2x1xi32, #blocked>
+    %15 = tt.broadcast %14 : (tensor<2x1xi32, #blocked>) -> tensor<2x256xi32, #blocked>
+    %16 = tt.splat %arg0 : (!tt.ptr<f32>) -> tensor<2x256x!tt.ptr<f32>, #blocked>
+    %17 = tt.broadcast %11 : (tensor<2x1xi1, #blocked>) -> tensor<2x256xi1, #blocked>
+    cf.br ^bb1(%c0_i32, %cst : i32, tensor<2x256xf32, #blocked>)
+  ^bb1(%18: i32, %19: tensor<2x256xf32, #blocked>):  // 2 preds: ^bb0, ^bb2
+    %20 = arith.cmpi slt, %18, %c2048_i32 : i32
+    cf.cond_br %20, ^bb2, ^bb3
+  ^bb2:  // pred: ^bb1
+    %21 = tt.splat %18 : (i32) -> tensor<1x256xi32, #blocked>
+    %22 = arith.addi %21, %13 : tensor<1x256xi32, #blocked>
+    %23 = "triton_gpu.cmpi"(%22, %cst_1) <{predicate = 2 : i64}> : (tensor<1x256xi32, #blocked>, tensor<1x256xi32, #blocked>) -> tensor<1x256xi1, #blocked>
+    %24 = tt.broadcast %22 : (tensor<1x256xi32, #blocked>) -> tensor<2x256xi32, #blocked>
+    %25 = arith.addi %24, %15 : tensor<2x256xi32, #blocked>
+    %26 = tt.addptr %16, %25 : tensor<2x256x!tt.ptr<f32>, #blocked>, tensor<2x256xi32, #blocked>
+    %27 = tt.broadcast %23 : (tensor<1x256xi1, #blocked>) -> tensor<2x256xi1, #blocked>
+    %28 = arith.andi %27, %17 : tensor<2x256xi1, #blocked>
+    %29 = tt.load %26, %28, %cst {cache = 1 : i32, evict = 1 : i32, isVolatile = false} : tensor<2x256xf32, #blocked>
+    %30 = arith.addf %19, %29 : tensor<2x256xf32, #blocked>
+    %31 = "triton_gpu.select"(%28, %30, %19) : (tensor<2x256xi1, #blocked>, tensor<2x256xf32, #blocked>, tensor<2x256xf32, #blocked>) -> tensor<2x256xf32, #blocked>
+    %32 = arith.addi %18, %c256_i32 : i32
+    cf.br ^bb1(%32, %31 : i32, tensor<2x256xf32, #blocked>)
+  ^bb3:  // pred: ^bb1
+    %33 = "tt.reduce"(%19) <{axis = 1 : i32}> ({
+    ^bb0(%arg4: f32, %arg5: f32):
+      %38 = arith.addf %arg4, %arg5 : f32
+      tt.reduce.return %38 : f32
+    }) : (tensor<2x256xf32, #blocked>) -> tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>
+    %34 = triton_gpu.convert_layout %33 : (tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked}>>) -> tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked1}>>
+    %35 = tt.expand_dims %34 {axis = 1 : i32} : (tensor<2xf32, #triton_gpu.slice<{dim = 1, parent = #blocked1}>>) -> tensor<2x1xf32, #blocked1>
+    %36 = tt.splat %arg1 : (!tt.ptr<f32>) -> tensor<2x1x!tt.ptr<f32>, #blocked1>
+    %37 = tt.addptr %36, %8 : tensor<2x1x!tt.ptr<f32>, #blocked1>, tensor<2x1xi32, #blocked1>
+    tt.store %37, %35, %10 {cache = 1 : i32, evict = 1 : i32} : tensor<2x1xf32, #blocked1>
+    tt.return
+  }
+}
+
+
+// -----// IR Dump After ConvertTritonGPUToLLVM (convert-triton-gpu-to-llvm) //----- //
+#blocked = #triton_gpu.blocked<{sizePerThread = [1, 4], threadsPerWarp = [1, 32], warpsPerCTA = [2, 2], order = [1, 0]}>
+module attributes {"triton_gpu.num-warps" = 4 : i32, triton_gpu.shared = 512 : i32, "triton_gpu.threads-per-warp" = 32 : i32} {
+  llvm.mlir.global external @global_smem() {addr_space = 3 : i32} : !llvm.array<0 x i8>
+  llvm.func @sumrow_kernel_0d1d23d(%arg0: !llvm.ptr<f32, 1> {tt.divisibility = 16 : i32}, %arg1: !llvm.ptr<f32, 1> {tt.divisibility = 16 : i32}, %arg2: i32, %arg3: i32 {tt.divisibility = 16 : i32}) attributes {noinline = false, nvvm.kernel = 1 : ui1, nvvm.maxntid = [128 : i32], sym_visibility = "public"} {
+    %0 = nvvm.read.ptx.sreg.tid.x : i32
+    %1 = llvm.mlir.constant(32 : i32) : i32
+    %2 = llvm.urem %0, %1  : i32
+    %3 = llvm.udiv %0, %1  : i32
+    %4 = llvm.mlir.constant(1 : i32) : i32
+    %5 = llvm.urem %3, %4  : i32
+    %6 = llvm.udiv %3, %4  : i32
+    %7 = llvm.mlir.constant(2 : i32) : i32
+    %8 = llvm.urem %2, %7  : i32
+    %9 = llvm.udiv %2, %7  : i32
+    %10 = llvm.mlir.constant(1 : i32) : i32
+    %11 = llvm.urem %5, %10  : i32
+    %12 = llvm.mlir.constant(2 : i32) : i32
+    %13 = llvm.urem %8, %12  : i32
+    %14 = llvm.mlir.constant(2 : i32) : i32
+    %15 = llvm.mlir.constant(1 : i32) : i32
+    %16 = llvm.mul %11, %14  : i32
+    %17 = llvm.add %13, %16  : i32
+    %18 = llvm.mul %15, %17  : i32
+    %19 = llvm.mlir.constant(1 : i32) : i32
+    %20 = llvm.urem %6, %19  : i32
+    %21 = llvm.mlir.constant(1 : i32) : i32
+    %22 = llvm.urem %9, %21  : i32
+    %23 = llvm.mlir.constant(16 : i32) : i32
+    %24 = llvm.mlir.constant(1 : i32) : i32
+    %25 = llvm.mul %20, %23  : i32
+    %26 = llvm.add %22, %25  : i32
+    %27 = llvm.mul %24, %26  : i32
+    %28 = llvm.mlir.constant(0 : i32) : i32
+    %29 = llvm.add %18, %28  : i32
+    %30 = nvvm.read.ptx.sreg.tid.x : i32
+    %31 = llvm.mlir.constant(32 : i32) : i32
+    %32 = llvm.urem %30, %31  : i32
+    %33 = llvm.udiv %30, %31  : i32
+    %34 = llvm.mlir.constant(2 : i32) : i32
+    %35 = llvm.urem %33, %34  : i32
+    %36 = llvm.udiv %33, %34  : i32
+    %37 = llvm.mlir.constant(32 : i32) : i32
+    %38 = llvm.urem %32, %37  : i32
+    %39 = llvm.udiv %32, %37  : i32
+    %40 = llvm.mlir.constant(2 : i32) : i32
+    %41 = llvm.urem %36, %40  : i32
+    %42 = llvm.mlir.constant(2 : i32) : i32
+    %43 = llvm.urem %39, %42  : i32
+    %44 = llvm.mlir.constant(1 : i32) : i32
+    %45 = llvm.mlir.constant(1 : i32) : i32
+    %46 = llvm.mul %41, %44  : i32
+    %47 = llvm.add %43, %46  : i32
+    %48 = llvm.mul %45, %47  : i32
+    %49 = llvm.mlir.constant(1 : i32) : i32
+    %50 = llvm.urem %35, %49  : i32
+    %51 = llvm.mlir.constant(1 : i32) : i32
+    %52 = llvm.urem %38, %51  : i32
+    %53 = llvm.mlir.constant(32 : i32) : i32
+    %54 = llvm.mlir.constant(4 : i32) : i32
+    %55 = llvm.mul %50, %53  : i32
+    %56 = llvm.add %52, %55  : i32
+    %57 = llvm.mul %54, %56  : i32
+    %58 = llvm.mlir.constant(0 : i32) : i32
+    %59 = llvm.add %48, %58  : i32
+    %60 = nvvm.read.ptx.sreg.tid.x : i32
+    %61 = llvm.mlir.constant(32 : i32) : i32
+    %62 = llvm.urem %60, %61  : i32
+    %63 = llvm.udiv %60, %61  : i32
+    %64 = llvm.mlir.constant(2 : i32) : i32
+    %65 = llvm.urem %63, %64  : i32
+    %66 = llvm.udiv %63, %64  : i32
+    %67 = llvm.mlir.constant(32 : i32) : i32
+    %68 = llvm.urem %62, %67  : i32
+    %69 = llvm.udiv %62, %67  : i32
+    %70 = llvm.mlir.constant(1 : i32) : i32
+    %71 = llvm.urem %66, %70  : i32
+    %72 = llvm.mlir.constant(1 : i32) : i32
+    %73 = llvm.urem %69, %72  : i32
+    %74 = llvm.mlir.constant(1 : i32) : i32
+    %75 = llvm.mlir.constant(1 : i32) : i32
+    %76 = llvm.mul %71, %74  : i32
+    %77 = llvm.add %73, %76  : i32
+    %78 = llvm.mul %75, %77  : i32
+    %79 = llvm.mlir.constant(2 : i32) : i32
+    %80 = llvm.urem %65, %79  : i32
+    %81 = llvm.mlir.constant(64 : i32) : i32
+    %82 = llvm.urem %68, %81  : i32
+    %83 = llvm.mlir.constant(32 : i32) : i32
+    %84 = llvm.mlir.constant(4 : i32) : i32
+    %85 = llvm.mul %80, %83  : i32
+    %86 = llvm.add %82, %85  : i32
+    %87 = llvm.mul %84, %86  : i32
+    %88 = llvm.mlir.constant(0 : i32) : i32
+    %89 = llvm.add %87, %88  : i32
+    %90 = llvm.mlir.constant(1 : i32) : i32
+    %91 = llvm.add %87, %90  : i32
+    %92 = llvm.mlir.constant(2 : i32) : i32
+    %93 = llvm.add %87, %92  : i32
+    %94 = llvm.mlir.constant(3 : i32) : i32
+    %95 = llvm.add %87, %94  : i32
+    %96 = nvvm.read.ptx.sreg.tid.x : i32
+    %97 = llvm.mlir.constant(32 : i32) : i32
+    %98 = llvm.urem %96, %97  : i32
+    %99 = llvm.udiv %96, %97  : i32
+    %100 = llvm.mlir.constant(2 : i32) : i32
+    %101 = llvm.urem %99, %100  : i32
+    %102 = llvm.udiv %99, %100  : i32
+    %103 = llvm.mlir.constant(32 : i32) : i32
+    %104 = llvm.urem %98, %103  : i32
+    %105 = llvm.udiv %98, %103  : i32
+    %106 = llvm.mlir.constant(2 : i32) : i32
+    %107 = llvm.urem %102, %106  : i32
+    %108 = llvm.mlir.constant(2 : i32) : i32
+    %109 = llvm.urem %105, %108  : i32
+    %110 = llvm.mlir.constant(1 : i32) : i32
+    %111 = llvm.mlir.constant(1 : i32) : i32
+    %112 = llvm.mul %107, %110  : i32
+    %113 = llvm.add %109, %112  : i32
+    %114 = llvm.mul %111, %113  : i32
+    %115 = llvm.mlir.constant(2 : i32) : i32
+    %116 = llvm.urem %101, %115  : i32
+    %117 = llvm.mlir.constant(64 : i32) : i32
+    %118 = llvm.urem %104, %117  : i32
+    %119 = llvm.mlir.constant(32 : i32) : i32
+    %120 = llvm.mlir.constant(4 : i32) : i32
+    %121 = llvm.mul %116, %119  : i32
+    %122 = llvm.add %118, %121  : i32
+    %123 = llvm.mul %120, %122  : i32
+    %124 = llvm.mlir.constant(0 : i32) : i32
+    %125 = llvm.add %114, %124  : i32
+    %126 = llvm.mlir.constant(0 : i32) : i32
+    %127 = llvm.add %123, %126  : i32
+    %128 = llvm.mlir.constant(0 : i32) : i32
+    %129 = llvm.add %114, %128  : i32
+    %130 = llvm.mlir.constant(1 : i32) : i32
+    %131 = llvm.add %123, %130  : i32
+    %132 = llvm.mlir.constant(0 : i32) : i32
+    %133 = llvm.add %114, %132  : i32
+    %134 = llvm.mlir.constant(2 : i32) : i32
+    %135 = llvm.add %123, %134  : i32
+    %136 = llvm.mlir.constant(0 : i32) : i32
+    %137 = llvm.add %114, %136  : i32
+    %138 = llvm.mlir.constant(3 : i32) : i32
+    %139 = llvm.add %123, %138  : i32
+    %140 = nvvm.read.ptx.sreg.tid.x : i32
+    %141 = llvm.mlir.constant(32 : i32) : i32
+    %142 = llvm.urem %140, %141  : i32
+    %143 = llvm.udiv %140, %141  : i32
+    %144 = llvm.mlir.constant(2 : i32) : i32
+    %145 = llvm.urem %143, %144  : i32
+    %146 = llvm.udiv %143, %144  : i32
+    %147 = llvm.mlir.constant(32 : i32) : i32
+    %148 = llvm.urem %142, %147  : i32
+    %149 = llvm.udiv %142, %147  : i32
+    %150 = llvm.mlir.constant(2 : i32) : i32
+    %151 = llvm.urem %146, %150  : i32
+    %152 = llvm.mlir.constant(2 : i32) : i32
+    %153 = llvm.urem %149, %152  : i32
+    %154 = llvm.mlir.constant(1 : i32) : i32
+    %155 = llvm.mlir.constant(1 : i32) : i32
+    %156 = llvm.mul %151, %154  : i32
+    %157 = llvm.add %153, %156  : i32
+    %158 = llvm.mul %155, %157  : i32
+    %159 = llvm.mlir.constant(1 : i32) : i32
+    %160 = llvm.urem %145, %159  : i32
+    %161 = llvm.mlir.constant(1 : i32) : i32
+    %162 = llvm.urem %148, %161  : i32
+    %163 = llvm.mlir.constant(32 : i32) : i32
+    %164 = llvm.mlir.constant(4 : i32) : i32
+    %165 = llvm.mul %160, %163  : i32
+    %166 = llvm.add %162, %165  : i32
+    %167 = llvm.mul %164, %166  : i32
+    %168 = llvm.mlir.constant(0 : i32) : i32
+    %169 = llvm.add %158, %168  : i32
+    %170 = nvvm.read.ptx.sreg.tid.x : i32
+    %171 = llvm.mlir.constant(32 : i32) : i32
+    %172 = llvm.urem %170, %171  : i32
+    %173 = llvm.udiv %170, %171  : i32
+    %174 = llvm.mlir.constant(1 : i32) : i32
+    %175 = llvm.urem %173, %174  : i32
+    %176 = llvm.udiv %173, %174  : i32
+    %177 = llvm.mlir.constant(2 : i32) : i32
+    %178 = llvm.urem %172, %177  : i32
+    %179 = llvm.udiv %172, %177  : i32
+    %180 = llvm.mlir.constant(1 : i32) : i32
+    %181 = llvm.urem %175, %180  : i32
+    %182 = llvm.mlir.constant(2 : i32) : i32
+    %183 = llvm.urem %178, %182  : i32
+    %184 = llvm.mlir.constant(2 : i32) : i32
+    %185 = llvm.mlir.constant(1 : i32) : i32
+    %186 = llvm.mul %181, %184  : i32
+    %187 = llvm.add %183, %186  : i32
+    %188 = llvm.mul %185, %187  : i32
+    %189 = llvm.mlir.constant(1 : i32) : i32
+    %190 = llvm.urem %176, %189  : i32
+    %191 = llvm.mlir.constant(1 : i32) : i32
+    %192 = llvm.urem %179, %191  : i32
+    %193 = llvm.mlir.constant(16 : i32) : i32
+    %194 = llvm.mlir.constant(1 : i32) : i32
+    %195 = llvm.mul %190, %193  : i32
+    %196 = llvm.add %192, %195  : i32
+    %197 = llvm.mul %194, %196  : i32
+    %198 = llvm.mlir.addressof @global_smem : !llvm.ptr<array<0 x i8>, 3>
+    %199 = llvm.bitcast %198 : !llvm.ptr<array<0 x i8>, 3> to !llvm.ptr<i8, 3>
+    %200 = builtin.unrealized_conversion_cast %arg1 : !llvm.ptr<f32, 1> to !tt.ptr<f32>
+    %201 = builtin.unrealized_conversion_cast %arg0 : !llvm.ptr<f32, 1> to !tt.ptr<f32>
+    %202 = llvm.mlir.constant(0.000000e+00 : f32) : f32
+    %203 = llvm.bitcast %202 : f32 to f32
+    %204 = llvm.mlir.undef : !llvm.struct<(f32, f32, f32, f32)>
+    %205 = llvm.insertvalue %203, %204[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %206 = llvm.insertvalue %203, %205[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %207 = llvm.insertvalue %203, %206[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %208 = llvm.insertvalue %203, %207[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %209 = builtin.unrealized_conversion_cast %208 : !llvm.struct<(f32, f32, f32, f32)> to tensor<2x256xf32, #blocked>
+    %210 = builtin.unrealized_conversion_cast %209 : tensor<2x256xf32, #blocked> to !llvm.struct<(f32, f32, f32, f32)>
+    %211 = llvm.mlir.constant(2048 : i32) : i32
+    %212 = llvm.bitcast %211 : i32 to i32
+    %213 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %214 = llvm.insertvalue %212, %213[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %215 = llvm.insertvalue %212, %214[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %216 = llvm.insertvalue %212, %215[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %217 = llvm.insertvalue %212, %216[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %218 = llvm.mlir.constant(2048 : i32) : i32
+    %219 = llvm.bitcast %218 : i32 to i32
+    %220 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %221 = llvm.insertvalue %219, %220[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %222 = llvm.insertvalue %219, %221[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %223 = llvm.insertvalue %219, %222[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %224 = llvm.insertvalue %219, %223[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %225 = llvm.mlir.constant(4 : i32) : i32
+    %226 = llvm.bitcast %225 : i32 to i32
+    %227 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %228 = llvm.insertvalue %226, %227[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %229 = llvm.insertvalue %226, %228[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %230 = llvm.insertvalue %226, %229[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %231 = llvm.insertvalue %226, %230[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %c256_i32 = arith.constant 256 : i32
+    %c2048_i32 = arith.constant 2048 : i32
+    %c0_i32 = arith.constant 0 : i32
+    %232 = llvm.mlir.constant(4 : i32) : i32
+    %233 = llvm.bitcast %232 : i32 to i32
+    %234 = llvm.mlir.undef : !llvm.struct<(i32)>
+    %235 = llvm.insertvalue %233, %234[0] : !llvm.struct<(i32)> 
+    %c2_i32 = arith.constant 2 : i32
+    %236 = nvvm.read.ptx.sreg.ctaid.x : i32
+    %237 = llvm.mul %236, %c2_i32  : i32
+    %238 = llvm.mlir.constant(0 : index) : i32
+    %239 = llvm.add %29, %238  : i32
+    %240 = llvm.mlir.undef : !llvm.struct<(i32)>
+    %241 = llvm.insertvalue %239, %240[0] : !llvm.struct<(i32)> 
+    %242 = llvm.mlir.constant(0 : index) : i32
+    %243 = llvm.add %59, %242  : i32
+    %244 = llvm.mlir.undef : !llvm.struct<(i32)>
+    %245 = llvm.insertvalue %243, %244[0] : !llvm.struct<(i32)> 
+    %246 = llvm.extractvalue %241[0] : !llvm.struct<(i32)> 
+    %247 = llvm.mlir.undef : !llvm.struct<(i32)>
+    %248 = llvm.insertvalue %246, %247[0] : !llvm.struct<(i32)> 
+    %249 = llvm.extractvalue %245[0] : !llvm.struct<(i32)> 
+    %250 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %251 = llvm.insertvalue %249, %250[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %252 = llvm.insertvalue %249, %251[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %253 = llvm.insertvalue %249, %252[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %254 = llvm.insertvalue %249, %253[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %255 = llvm.bitcast %237 : i32 to i32
+    %256 = llvm.mlir.undef : !llvm.struct<(i32)>
+    %257 = llvm.insertvalue %255, %256[0] : !llvm.struct<(i32)> 
+    %258 = llvm.bitcast %237 : i32 to i32
+    %259 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %260 = llvm.insertvalue %258, %259[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %261 = llvm.insertvalue %258, %260[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %262 = llvm.insertvalue %258, %261[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %263 = llvm.insertvalue %258, %262[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %264 = llvm.extractvalue %257[0] : !llvm.struct<(i32)> 
+    %265 = llvm.extractvalue %248[0] : !llvm.struct<(i32)> 
+    %266 = llvm.add %264, %265  : i32
+    %267 = llvm.mlir.undef : !llvm.struct<(i32)>
+    %268 = llvm.insertvalue %266, %267[0] : !llvm.struct<(i32)> 
+    %269 = llvm.extractvalue %263[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %270 = llvm.extractvalue %263[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %271 = llvm.extractvalue %263[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %272 = llvm.extractvalue %263[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %273 = llvm.extractvalue %254[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %274 = llvm.extractvalue %254[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %275 = llvm.extractvalue %254[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %276 = llvm.extractvalue %254[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %277 = llvm.add %269, %273  : i32
+    %278 = llvm.add %270, %274  : i32
+    %279 = llvm.add %271, %275  : i32
+    %280 = llvm.add %272, %276  : i32
+    %281 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %282 = llvm.insertvalue %277, %281[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %283 = llvm.insertvalue %278, %282[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %284 = llvm.insertvalue %279, %283[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %285 = llvm.insertvalue %280, %284[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %286 = llvm.extractvalue %268[0] : !llvm.struct<(i32)> 
+    %287 = llvm.extractvalue %235[0] : !llvm.struct<(i32)> 
+    %288 = llvm.icmp "slt" %286, %287 : i32
+    %289 = llvm.mlir.undef : !llvm.struct<(i1)>
+    %290 = llvm.insertvalue %288, %289[0] : !llvm.struct<(i1)> 
+    %291 = llvm.extractvalue %285[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %292 = llvm.extractvalue %285[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %293 = llvm.extractvalue %285[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %294 = llvm.extractvalue %285[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %295 = llvm.extractvalue %231[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %296 = llvm.extractvalue %231[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %297 = llvm.extractvalue %231[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %298 = llvm.extractvalue %231[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %299 = llvm.icmp "slt" %291, %295 : i32
+    %300 = llvm.icmp "slt" %292, %296 : i32
+    %301 = llvm.icmp "slt" %293, %297 : i32
+    %302 = llvm.icmp "slt" %294, %298 : i32
+    %303 = llvm.mlir.undef : !llvm.struct<(i1, i1, i1, i1)>
+    %304 = llvm.insertvalue %299, %303[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %305 = llvm.insertvalue %300, %304[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %306 = llvm.insertvalue %301, %305[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %307 = llvm.insertvalue %302, %306[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %308 = llvm.mlir.constant(0 : index) : i32
+    %309 = llvm.add %89, %308  : i32
+    %310 = llvm.add %91, %308  : i32
+    %311 = llvm.add %93, %308  : i32
+    %312 = llvm.add %95, %308  : i32
+    %313 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %314 = llvm.insertvalue %309, %313[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %315 = llvm.insertvalue %310, %314[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %316 = llvm.insertvalue %311, %315[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %317 = llvm.insertvalue %312, %316[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %318 = llvm.extractvalue %317[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %319 = llvm.extractvalue %317[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %320 = llvm.extractvalue %317[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %321 = llvm.extractvalue %317[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %322 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %323 = llvm.insertvalue %318, %322[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %324 = llvm.insertvalue %319, %323[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %325 = llvm.insertvalue %320, %324[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %326 = llvm.insertvalue %321, %325[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %327 = llvm.extractvalue %285[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %328 = llvm.extractvalue %285[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %329 = llvm.extractvalue %285[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %330 = llvm.extractvalue %285[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %331 = llvm.extractvalue %217[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %332 = llvm.extractvalue %217[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %333 = llvm.extractvalue %217[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %334 = llvm.extractvalue %217[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %335 = llvm.mul %327, %331  : i32
+    %336 = llvm.mul %328, %332  : i32
+    %337 = llvm.mul %329, %333  : i32
+    %338 = llvm.mul %330, %334  : i32
+    %339 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %340 = llvm.insertvalue %335, %339[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %341 = llvm.insertvalue %336, %340[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %342 = llvm.insertvalue %337, %341[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %343 = llvm.insertvalue %338, %342[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %344 = llvm.extractvalue %343[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %345 = llvm.extractvalue %343[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %346 = llvm.extractvalue %343[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %347 = llvm.extractvalue %343[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %348 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %349 = llvm.insertvalue %344, %348[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %350 = llvm.insertvalue %344, %349[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %351 = llvm.insertvalue %344, %350[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %352 = llvm.insertvalue %344, %351[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %353 = llvm.bitcast %arg0 : !llvm.ptr<f32, 1> to !llvm.ptr<f32, 1>
+    %354 = llvm.mlir.undef : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)>
+    %355 = llvm.insertvalue %353, %354[0] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %356 = llvm.insertvalue %353, %355[1] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %357 = llvm.insertvalue %353, %356[2] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %358 = llvm.insertvalue %353, %357[3] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %359 = llvm.extractvalue %307[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %360 = llvm.extractvalue %307[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %361 = llvm.extractvalue %307[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %362 = llvm.extractvalue %307[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %363 = llvm.mlir.undef : !llvm.struct<(i1, i1, i1, i1)>
+    %364 = llvm.insertvalue %359, %363[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %365 = llvm.insertvalue %359, %364[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %366 = llvm.insertvalue %359, %365[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %367 = llvm.insertvalue %359, %366[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    llvm.br ^bb1(%c0_i32, %210 : i32, !llvm.struct<(f32, f32, f32, f32)>)
+  ^bb1(%368: i32, %369: !llvm.struct<(f32, f32, f32, f32)>):  // 2 preds: ^bb0, ^bb2
+    %370 = builtin.unrealized_conversion_cast %369 : !llvm.struct<(f32, f32, f32, f32)> to tensor<2x256xf32, #blocked>
+    %371 = arith.cmpi slt, %368, %c2048_i32 : i32
+    llvm.cond_br %371, ^bb2, ^bb3
+  ^bb2:  // pred: ^bb1
+    %372 = llvm.bitcast %368 : i32 to i32
+    %373 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %374 = llvm.insertvalue %372, %373[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %375 = llvm.insertvalue %372, %374[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %376 = llvm.insertvalue %372, %375[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %377 = llvm.insertvalue %372, %376[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %378 = llvm.extractvalue %377[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %379 = llvm.extractvalue %377[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %380 = llvm.extractvalue %377[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %381 = llvm.extractvalue %377[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %382 = llvm.extractvalue %326[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %383 = llvm.extractvalue %326[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %384 = llvm.extractvalue %326[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %385 = llvm.extractvalue %326[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %386 = llvm.add %378, %382  : i32
+    %387 = llvm.add %379, %383  : i32
+    %388 = llvm.add %380, %384  : i32
+    %389 = llvm.add %381, %385  : i32
+    %390 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %391 = llvm.insertvalue %386, %390[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %392 = llvm.insertvalue %387, %391[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %393 = llvm.insertvalue %388, %392[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %394 = llvm.insertvalue %389, %393[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %395 = llvm.extractvalue %394[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %396 = llvm.extractvalue %394[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %397 = llvm.extractvalue %394[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %398 = llvm.extractvalue %394[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %399 = llvm.extractvalue %224[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %400 = llvm.extractvalue %224[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %401 = llvm.extractvalue %224[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %402 = llvm.extractvalue %224[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %403 = llvm.icmp "slt" %395, %399 : i32
+    %404 = llvm.icmp "slt" %396, %400 : i32
+    %405 = llvm.icmp "slt" %397, %401 : i32
+    %406 = llvm.icmp "slt" %398, %402 : i32
+    %407 = llvm.mlir.undef : !llvm.struct<(i1, i1, i1, i1)>
+    %408 = llvm.insertvalue %403, %407[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %409 = llvm.insertvalue %404, %408[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %410 = llvm.insertvalue %405, %409[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %411 = llvm.insertvalue %406, %410[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %412 = llvm.extractvalue %394[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %413 = llvm.extractvalue %394[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %414 = llvm.extractvalue %394[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %415 = llvm.extractvalue %394[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %416 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %417 = llvm.insertvalue %412, %416[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %418 = llvm.insertvalue %413, %417[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %419 = llvm.insertvalue %414, %418[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %420 = llvm.insertvalue %415, %419[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %421 = llvm.extractvalue %420[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %422 = llvm.extractvalue %420[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %423 = llvm.extractvalue %420[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %424 = llvm.extractvalue %420[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %425 = llvm.extractvalue %352[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %426 = llvm.extractvalue %352[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %427 = llvm.extractvalue %352[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %428 = llvm.extractvalue %352[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %429 = llvm.add %421, %425  : i32
+    %430 = llvm.add %422, %426  : i32
+    %431 = llvm.add %423, %427  : i32
+    %432 = llvm.add %424, %428  : i32
+    %433 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %434 = llvm.insertvalue %429, %433[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %435 = llvm.insertvalue %430, %434[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %436 = llvm.insertvalue %431, %435[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %437 = llvm.insertvalue %432, %436[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %438 = llvm.extractvalue %358[0] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %439 = llvm.extractvalue %358[1] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %440 = llvm.extractvalue %358[2] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %441 = llvm.extractvalue %358[3] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %442 = llvm.extractvalue %437[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %443 = llvm.extractvalue %437[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %444 = llvm.extractvalue %437[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %445 = llvm.extractvalue %437[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %446 = llvm.getelementptr %438[%442] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %447 = llvm.getelementptr %439[%443] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %448 = llvm.getelementptr %440[%444] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %449 = llvm.getelementptr %441[%445] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %450 = llvm.mlir.undef : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)>
+    %451 = llvm.insertvalue %446, %450[0] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %452 = llvm.insertvalue %447, %451[1] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %453 = llvm.insertvalue %448, %452[2] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %454 = llvm.insertvalue %449, %453[3] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %455 = llvm.extractvalue %411[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %456 = llvm.extractvalue %411[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %457 = llvm.extractvalue %411[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %458 = llvm.extractvalue %411[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %459 = llvm.mlir.undef : !llvm.struct<(i1, i1, i1, i1)>
+    %460 = llvm.insertvalue %455, %459[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %461 = llvm.insertvalue %456, %460[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %462 = llvm.insertvalue %457, %461[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %463 = llvm.insertvalue %458, %462[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %464 = llvm.extractvalue %463[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %465 = llvm.extractvalue %463[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %466 = llvm.extractvalue %463[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %467 = llvm.extractvalue %463[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %468 = llvm.extractvalue %367[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %469 = llvm.extractvalue %367[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %470 = llvm.extractvalue %367[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %471 = llvm.extractvalue %367[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %472 = llvm.and %464, %468  : i1
+    %473 = llvm.and %465, %469  : i1
+    %474 = llvm.and %466, %470  : i1
+    %475 = llvm.and %467, %471  : i1
+    %476 = llvm.mlir.undef : !llvm.struct<(i1, i1, i1, i1)>
+    %477 = llvm.insertvalue %472, %476[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %478 = llvm.insertvalue %473, %477[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %479 = llvm.insertvalue %474, %478[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %480 = llvm.insertvalue %475, %479[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %481 = llvm.extractvalue %454[0] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %482 = llvm.extractvalue %454[1] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %483 = llvm.extractvalue %454[2] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %484 = llvm.extractvalue %454[3] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %485 = llvm.extractvalue %480[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %486 = llvm.extractvalue %480[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %487 = llvm.extractvalue %480[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %488 = llvm.extractvalue %480[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %489 = llvm.extractvalue %208[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %490 = llvm.extractvalue %208[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %491 = llvm.extractvalue %208[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %492 = llvm.extractvalue %208[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %493 = llvm.mlir.undef : vector<1xf32>
+    %494 = llvm.mlir.constant(0 : index) : i32
+    %495 = llvm.insertelement %489, %493[%494 : i32] : vector<1xf32>
+    %496 = llvm.bitcast %495 : vector<1xf32> to i32
+    %497 = llvm.mlir.undef : vector<1xf32>
+    %498 = llvm.mlir.constant(0 : index) : i32
+    %499 = llvm.insertelement %490, %497[%498 : i32] : vector<1xf32>
+    %500 = llvm.bitcast %499 : vector<1xf32> to i32
+    %501 = llvm.mlir.undef : vector<1xf32>
+    %502 = llvm.mlir.constant(0 : index) : i32
+    %503 = llvm.insertelement %491, %501[%502 : i32] : vector<1xf32>
+    %504 = llvm.bitcast %503 : vector<1xf32> to i32
+    %505 = llvm.mlir.undef : vector<1xf32>
+    %506 = llvm.mlir.constant(0 : index) : i32
+    %507 = llvm.insertelement %492, %505[%506 : i32] : vector<1xf32>
+    %508 = llvm.bitcast %507 : vector<1xf32> to i32
+    %509 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "mov.u32 $0, 0x0;\0A\09mov.u32 $1, 0x0;\0A\09mov.u32 $2, 0x0;\0A\09mov.u32 $3, 0x0;\0A\09@$5 ld.global.v4.b32 { $0, $1, $2, $3 }, [ $4 + 0 ];\0A\09@!$7 mov.u32 $0, $6;\0A\09@!$9 mov.u32 $1, $8;\0A\09@!$11 mov.u32 $2, $10;\0A\09@!$13 mov.u32 $3, $12;", "=r,=r,=r,=r,l,b,r,b,r,b,r,b,r,b" %481, %485, %496, %485, %500, %485, %504, %485, %508, %485 : (!llvm.ptr<f32, 1>, i1, i32, i1, i32, i1, i32, i1, i32, i1) -> !llvm.struct<(i32, i32, i32, i32)>
+    %510 = llvm.extractvalue %509[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %511 = llvm.bitcast %510 : i32 to vector<1xf32>
+    %512 = llvm.extractvalue %509[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %513 = llvm.bitcast %512 : i32 to vector<1xf32>
+    %514 = llvm.extractvalue %509[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %515 = llvm.bitcast %514 : i32 to vector<1xf32>
+    %516 = llvm.extractvalue %509[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %517 = llvm.bitcast %516 : i32 to vector<1xf32>
+    %518 = llvm.mlir.constant(0 : index) : i32
+    %519 = llvm.extractelement %511[%518 : i32] : vector<1xf32>
+    %520 = llvm.mlir.constant(0 : index) : i32
+    %521 = llvm.extractelement %513[%520 : i32] : vector<1xf32>
+    %522 = llvm.mlir.constant(0 : index) : i32
+    %523 = llvm.extractelement %515[%522 : i32] : vector<1xf32>
+    %524 = llvm.mlir.constant(0 : index) : i32
+    %525 = llvm.extractelement %517[%524 : i32] : vector<1xf32>
+    %526 = llvm.mlir.undef : !llvm.struct<(f32, f32, f32, f32)>
+    %527 = llvm.insertvalue %519, %526[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %528 = llvm.insertvalue %521, %527[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %529 = llvm.insertvalue %523, %528[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %530 = llvm.insertvalue %525, %529[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %531 = llvm.extractvalue %369[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %532 = llvm.extractvalue %369[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %533 = llvm.extractvalue %369[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %534 = llvm.extractvalue %369[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %535 = llvm.extractvalue %530[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %536 = llvm.extractvalue %530[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %537 = llvm.extractvalue %530[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %538 = llvm.extractvalue %530[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %539 = llvm.fadd %531, %535  : f32
+    %540 = llvm.fadd %532, %536  : f32
+    %541 = llvm.fadd %533, %537  : f32
+    %542 = llvm.fadd %534, %538  : f32
+    %543 = llvm.mlir.undef : !llvm.struct<(f32, f32, f32, f32)>
+    %544 = llvm.insertvalue %539, %543[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %545 = llvm.insertvalue %540, %544[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %546 = llvm.insertvalue %541, %545[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %547 = llvm.insertvalue %542, %546[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %548 = llvm.extractvalue %480[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %549 = llvm.extractvalue %480[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %550 = llvm.extractvalue %480[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %551 = llvm.extractvalue %480[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %552 = llvm.extractvalue %547[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %553 = llvm.extractvalue %547[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %554 = llvm.extractvalue %547[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %555 = llvm.extractvalue %547[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %556 = llvm.extractvalue %369[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %557 = llvm.extractvalue %369[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %558 = llvm.extractvalue %369[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %559 = llvm.extractvalue %369[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %560 = llvm.select %548, %552, %556 : i1, f32
+    %561 = llvm.select %549, %553, %557 : i1, f32
+    %562 = llvm.select %550, %554, %558 : i1, f32
+    %563 = llvm.select %551, %555, %559 : i1, f32
+    %564 = llvm.mlir.undef : !llvm.struct<(f32, f32, f32, f32)>
+    %565 = llvm.insertvalue %560, %564[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %566 = llvm.insertvalue %561, %565[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %567 = llvm.insertvalue %562, %566[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %568 = llvm.insertvalue %563, %567[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %569 = builtin.unrealized_conversion_cast %568 : !llvm.struct<(f32, f32, f32, f32)> to tensor<2x256xf32, #blocked>
+    %570 = builtin.unrealized_conversion_cast %569 : tensor<2x256xf32, #blocked> to !llvm.struct<(f32, f32, f32, f32)>
+    %571 = llvm.add %368, %c256_i32  : i32
+    llvm.br ^bb1(%571, %570 : i32, !llvm.struct<(f32, f32, f32, f32)>)
+  ^bb3:  // pred: ^bb1
+    %572 = llvm.mlir.constant(0 : i32) : i32
+    %573 = llvm.getelementptr %199[%572] : (!llvm.ptr<i8, 3>, i32) -> !llvm.ptr<i8, 3>
+    %574 = llvm.bitcast %573 : !llvm.ptr<i8, 3> to !llvm.ptr<f32, 3>
+    %575 = llvm.extractvalue %369[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %576 = llvm.extractvalue %369[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %577 = llvm.extractvalue %369[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %578 = llvm.extractvalue %369[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %579 = llvm.fadd %575, %576  : f32
+    %580 = llvm.fadd %579, %577  : f32
+    %581 = llvm.fadd %580, %578  : f32
+    %582 = nvvm.read.ptx.sreg.tid.x : i32
+    %583 = llvm.mlir.constant(32 : i32) : i32
+    %584 = llvm.udiv %582, %583  : i32
+    %585 = llvm.urem %582, %583  : i32
+    %586 = llvm.mlir.constant(32 : i32) : i32
+    %587 = llvm.urem %585, %586  : i32
+    %588 = llvm.udiv %585, %586  : i32
+    %589 = llvm.mlir.constant(2 : i32) : i32
+    %590 = llvm.urem %584, %589  : i32
+    %591 = llvm.udiv %584, %589  : i32
+    %592 = llvm.mlir.constant(0 : i32) : i32
+    %593 = llvm.icmp "eq" %587, %592 : i32
+    %594 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x10, 0x1f, 0xffffffff;", "=r,r" %581 : (f32) -> f32
+    %595 = llvm.fadd %581, %594  : f32
+    %596 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x8, 0x1f, 0xffffffff;", "=r,r" %595 : (f32) -> f32
+    %597 = llvm.fadd %595, %596  : f32
+    %598 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x4, 0x1f, 0xffffffff;", "=r,r" %597 : (f32) -> f32
+    %599 = llvm.fadd %597, %598  : f32
+    %600 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x2, 0x1f, 0xffffffff;", "=r,r" %599 : (f32) -> f32
+    %601 = llvm.fadd %599, %600  : f32
+    %602 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x1, 0x1f, 0xffffffff;", "=r,r" %601 : (f32) -> f32
+    %603 = llvm.fadd %601, %602  : f32
+    %604 = llvm.mlir.constant(0 : i32) : i32
+    %605 = llvm.mlir.constant(2 : i32) : i32
+    %606 = llvm.mul %125, %605  : i32
+    %607 = llvm.add %606, %590  : i32
+    %608 = llvm.getelementptr %574[%607] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %609 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "@$2 st.shared.b32 [ $0 + 0 ], $1;", "r,r,b" %608, %603, %593 : (!llvm.ptr<f32, 3>, f32, i1) -> !llvm.void
+    nvvm.barrier0
+    %610 = llvm.getelementptr %574[%582] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %611 = llvm.load %610 : !llvm.ptr<f32, 3>
+    %612 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x1, 0x1f, 0xffffffff;", "=r,r" %611 : (f32) -> f32
+    %613 = llvm.fadd %611, %612  : f32
+    %614 = llvm.getelementptr %574[%582] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %615 = llvm.mlir.constant(4 : i32) : i32
+    %616 = llvm.icmp "slt" %582, %615 : i32
+    %617 = llvm.mlir.constant(2 : i32) : i32
+    %618 = llvm.urem %585, %617  : i32
+    %619 = llvm.icmp "eq" %618, %592 : i32
+    %620 = llvm.and %616, %619  : i1
+    %621 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "@$2 st.shared.b32 [ $0 + 0 ], $1;", "r,r,b" %614, %613, %620 : (!llvm.ptr<f32, 3>, f32, i1) -> !llvm.void
+    nvvm.barrier0
+    %622 = llvm.mlir.constant(0 : i32) : i32
+    %623 = llvm.mlir.constant(0 : i32) : i32
+    %624 = llvm.mlir.constant(2 : i32) : i32
+    %625 = llvm.mul %169, %624  : i32
+    %626 = llvm.add %625, %622  : i32
+    %627 = llvm.getelementptr %574[%626] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %628 = llvm.load %627 : !llvm.ptr<f32, 3>
+    %629 = llvm.mlir.undef : !llvm.struct<(f32)>
+    %630 = llvm.insertvalue %628, %629[0] : !llvm.struct<(f32)> 
+    nvvm.barrier0
+    %631 = llvm.mlir.constant(0 : i32) : i32
+    %632 = llvm.getelementptr %199[%631] : (!llvm.ptr<i8, 3>, i32) -> !llvm.ptr<i8, 3>
+    %633 = llvm.bitcast %632 : !llvm.ptr<i8, 3> to !llvm.ptr<f32, 3>
+    %634 = llvm.extractvalue %630[0] : !llvm.struct<(f32)> 
+    %635 = llvm.mlir.constant(0 : i32) : i32
+    %636 = llvm.add %158, %635  : i32
+    %637 = llvm.mlir.constant(1 : i32) : i32
+    %638 = llvm.add %167, %637  : i32
+    %639 = llvm.mlir.constant(0 : i32) : i32
+    %640 = llvm.getelementptr %633[%636] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %641 = llvm.bitcast %640 : !llvm.ptr<f32, 3> to !llvm.ptr<vector<1xf32>, 3>
+    %642 = llvm.mlir.undef : vector<1xf32>
+    %643 = llvm.mlir.constant(0 : i32) : i32
+    %644 = llvm.insertelement %634, %642[%643 : i32] : vector<1xf32>
+    llvm.store %644, %641 : !llvm.ptr<vector<1xf32>, 3>
+    nvvm.barrier0
+    %645 = llvm.mlir.constant(0 : i32) : i32
+    %646 = llvm.add %188, %645  : i32
+    %647 = llvm.mlir.constant(1 : i32) : i32
+    %648 = llvm.add %197, %647  : i32
+    %649 = llvm.mlir.constant(0 : i32) : i32
+    %650 = llvm.getelementptr %633[%646] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %651 = llvm.bitcast %650 : !llvm.ptr<f32, 3> to !llvm.ptr<vector<1xf32>, 3>
+    %652 = llvm.load %651 : !llvm.ptr<vector<1xf32>, 3>
+    %653 = llvm.mlir.constant(0 : i32) : i32
+    %654 = llvm.extractelement %652[%653 : i32] : vector<1xf32>
+    %655 = llvm.mlir.undef : !llvm.struct<(f32)>
+    %656 = llvm.insertvalue %654, %655[0] : !llvm.struct<(f32)> 
+    %657 = llvm.extractvalue %656[0] : !llvm.struct<(f32)> 
+    %658 = llvm.mlir.undef : !llvm.struct<(f32)>
+    %659 = llvm.insertvalue %657, %658[0] : !llvm.struct<(f32)> 
+    %660 = llvm.bitcast %arg1 : !llvm.ptr<f32, 1> to !llvm.ptr<f32, 1>
+    %661 = llvm.mlir.undef : !llvm.struct<(ptr<f32, 1>)>
+    %662 = llvm.insertvalue %660, %661[0] : !llvm.struct<(ptr<f32, 1>)> 
+    %663 = llvm.extractvalue %662[0] : !llvm.struct<(ptr<f32, 1>)> 
+    %664 = llvm.extractvalue %268[0] : !llvm.struct<(i32)> 
+    %665 = llvm.getelementptr %663[%664] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %666 = llvm.mlir.undef : !llvm.struct<(ptr<f32, 1>)>
+    %667 = llvm.insertvalue %665, %666[0] : !llvm.struct<(ptr<f32, 1>)> 
+    %668 = llvm.extractvalue %667[0] : !llvm.struct<(ptr<f32, 1>)> 
+    %669 = llvm.extractvalue %659[0] : !llvm.struct<(f32)> 
+    %670 = llvm.extractvalue %290[0] : !llvm.struct<(i1)> 
+    %671 = llvm.mlir.constant(true) : i1
+    %672 = nvvm.read.ptx.sreg.tid.x : i32
+    %673 = llvm.mlir.constant(32 : i32) : i32
+    %674 = llvm.urem %672, %673  : i32
+    %675 = llvm.udiv %672, %673  : i32
+    %676 = llvm.mlir.constant(1 : i32) : i32
+    %677 = llvm.urem %675, %676  : i32
+    %678 = llvm.udiv %675, %676  : i32
+    %679 = llvm.mlir.constant(2 : i32) : i32
+    %680 = llvm.urem %674, %679  : i32
+    %681 = llvm.udiv %674, %679  : i32
+    %682 = llvm.mlir.constant(16 : i32) : i32
+    %683 = llvm.mul %678, %682  : i32
+    %684 = llvm.add %683, %681  : i32
+    %685 = llvm.mlir.constant(1 : i32) : i32
+    %686 = llvm.mlir.constant(1 : i32) : i32
+    %687 = llvm.mul %684, %686  : i32
+    %688 = llvm.icmp "slt" %687, %685 : i32
+    %689 = llvm.and %671, %688  : i1
+    %690 = llvm.mlir.undef : vector<1xf32>
+    %691 = llvm.bitcast %669 : f32 to f32
+    %692 = llvm.mlir.constant(0 : i32) : i32
+    %693 = llvm.insertelement %691, %690[%692 : i32] : vector<1xf32>
+    %694 = llvm.bitcast %693 : vector<1xf32> to i32
+    %695 = llvm.and %689, %670  : i1
+    %696 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "@$2 st.global.b32 [ $1 + 0 ], { $0 };", "r,l,b" %694, %668, %695 : (i32, !llvm.ptr<f32, 1>, i1) -> !llvm.void
+    llvm.return
+  }
+}
+
+
+// -----// IR Dump After ArithToLLVMConversionPass (convert-arith-to-llvm) //----- //
+#blocked = #triton_gpu.blocked<{sizePerThread = [1, 4], threadsPerWarp = [1, 32], warpsPerCTA = [2, 2], order = [1, 0]}>
+module attributes {"triton_gpu.num-warps" = 4 : i32, triton_gpu.shared = 512 : i32, "triton_gpu.threads-per-warp" = 32 : i32} {
+  llvm.mlir.global external @global_smem() {addr_space = 3 : i32} : !llvm.array<0 x i8>
+  llvm.func @sumrow_kernel_0d1d23d(%arg0: !llvm.ptr<f32, 1> {tt.divisibility = 16 : i32}, %arg1: !llvm.ptr<f32, 1> {tt.divisibility = 16 : i32}, %arg2: i32, %arg3: i32 {tt.divisibility = 16 : i32}) attributes {noinline = false, nvvm.kernel = 1 : ui1, nvvm.maxntid = [128 : i32], sym_visibility = "public"} {
+    %0 = nvvm.read.ptx.sreg.tid.x : i32
+    %1 = llvm.mlir.constant(32 : i32) : i32
+    %2 = llvm.urem %0, %1  : i32
+    %3 = llvm.udiv %0, %1  : i32
+    %4 = llvm.mlir.constant(1 : i32) : i32
+    %5 = llvm.urem %3, %4  : i32
+    %6 = llvm.udiv %3, %4  : i32
+    %7 = llvm.mlir.constant(2 : i32) : i32
+    %8 = llvm.urem %2, %7  : i32
+    %9 = llvm.udiv %2, %7  : i32
+    %10 = llvm.mlir.constant(1 : i32) : i32
+    %11 = llvm.urem %5, %10  : i32
+    %12 = llvm.mlir.constant(2 : i32) : i32
+    %13 = llvm.urem %8, %12  : i32
+    %14 = llvm.mlir.constant(2 : i32) : i32
+    %15 = llvm.mlir.constant(1 : i32) : i32
+    %16 = llvm.mul %11, %14  : i32
+    %17 = llvm.add %13, %16  : i32
+    %18 = llvm.mul %15, %17  : i32
+    %19 = llvm.mlir.constant(1 : i32) : i32
+    %20 = llvm.urem %6, %19  : i32
+    %21 = llvm.mlir.constant(1 : i32) : i32
+    %22 = llvm.urem %9, %21  : i32
+    %23 = llvm.mlir.constant(16 : i32) : i32
+    %24 = llvm.mlir.constant(1 : i32) : i32
+    %25 = llvm.mul %20, %23  : i32
+    %26 = llvm.add %22, %25  : i32
+    %27 = llvm.mul %24, %26  : i32
+    %28 = llvm.mlir.constant(0 : i32) : i32
+    %29 = llvm.add %18, %28  : i32
+    %30 = nvvm.read.ptx.sreg.tid.x : i32
+    %31 = llvm.mlir.constant(32 : i32) : i32
+    %32 = llvm.urem %30, %31  : i32
+    %33 = llvm.udiv %30, %31  : i32
+    %34 = llvm.mlir.constant(2 : i32) : i32
+    %35 = llvm.urem %33, %34  : i32
+    %36 = llvm.udiv %33, %34  : i32
+    %37 = llvm.mlir.constant(32 : i32) : i32
+    %38 = llvm.urem %32, %37  : i32
+    %39 = llvm.udiv %32, %37  : i32
+    %40 = llvm.mlir.constant(2 : i32) : i32
+    %41 = llvm.urem %36, %40  : i32
+    %42 = llvm.mlir.constant(2 : i32) : i32
+    %43 = llvm.urem %39, %42  : i32
+    %44 = llvm.mlir.constant(1 : i32) : i32
+    %45 = llvm.mlir.constant(1 : i32) : i32
+    %46 = llvm.mul %41, %44  : i32
+    %47 = llvm.add %43, %46  : i32
+    %48 = llvm.mul %45, %47  : i32
+    %49 = llvm.mlir.constant(1 : i32) : i32
+    %50 = llvm.urem %35, %49  : i32
+    %51 = llvm.mlir.constant(1 : i32) : i32
+    %52 = llvm.urem %38, %51  : i32
+    %53 = llvm.mlir.constant(32 : i32) : i32
+    %54 = llvm.mlir.constant(4 : i32) : i32
+    %55 = llvm.mul %50, %53  : i32
+    %56 = llvm.add %52, %55  : i32
+    %57 = llvm.mul %54, %56  : i32
+    %58 = llvm.mlir.constant(0 : i32) : i32
+    %59 = llvm.add %48, %58  : i32
+    %60 = nvvm.read.ptx.sreg.tid.x : i32
+    %61 = llvm.mlir.constant(32 : i32) : i32
+    %62 = llvm.urem %60, %61  : i32
+    %63 = llvm.udiv %60, %61  : i32
+    %64 = llvm.mlir.constant(2 : i32) : i32
+    %65 = llvm.urem %63, %64  : i32
+    %66 = llvm.udiv %63, %64  : i32
+    %67 = llvm.mlir.constant(32 : i32) : i32
+    %68 = llvm.urem %62, %67  : i32
+    %69 = llvm.udiv %62, %67  : i32
+    %70 = llvm.mlir.constant(1 : i32) : i32
+    %71 = llvm.urem %66, %70  : i32
+    %72 = llvm.mlir.constant(1 : i32) : i32
+    %73 = llvm.urem %69, %72  : i32
+    %74 = llvm.mlir.constant(1 : i32) : i32
+    %75 = llvm.mlir.constant(1 : i32) : i32
+    %76 = llvm.mul %71, %74  : i32
+    %77 = llvm.add %73, %76  : i32
+    %78 = llvm.mul %75, %77  : i32
+    %79 = llvm.mlir.constant(2 : i32) : i32
+    %80 = llvm.urem %65, %79  : i32
+    %81 = llvm.mlir.constant(64 : i32) : i32
+    %82 = llvm.urem %68, %81  : i32
+    %83 = llvm.mlir.constant(32 : i32) : i32
+    %84 = llvm.mlir.constant(4 : i32) : i32
+    %85 = llvm.mul %80, %83  : i32
+    %86 = llvm.add %82, %85  : i32
+    %87 = llvm.mul %84, %86  : i32
+    %88 = llvm.mlir.constant(0 : i32) : i32
+    %89 = llvm.add %87, %88  : i32
+    %90 = llvm.mlir.constant(1 : i32) : i32
+    %91 = llvm.add %87, %90  : i32
+    %92 = llvm.mlir.constant(2 : i32) : i32
+    %93 = llvm.add %87, %92  : i32
+    %94 = llvm.mlir.constant(3 : i32) : i32
+    %95 = llvm.add %87, %94  : i32
+    %96 = nvvm.read.ptx.sreg.tid.x : i32
+    %97 = llvm.mlir.constant(32 : i32) : i32
+    %98 = llvm.urem %96, %97  : i32
+    %99 = llvm.udiv %96, %97  : i32
+    %100 = llvm.mlir.constant(2 : i32) : i32
+    %101 = llvm.urem %99, %100  : i32
+    %102 = llvm.udiv %99, %100  : i32
+    %103 = llvm.mlir.constant(32 : i32) : i32
+    %104 = llvm.urem %98, %103  : i32
+    %105 = llvm.udiv %98, %103  : i32
+    %106 = llvm.mlir.constant(2 : i32) : i32
+    %107 = llvm.urem %102, %106  : i32
+    %108 = llvm.mlir.constant(2 : i32) : i32
+    %109 = llvm.urem %105, %108  : i32
+    %110 = llvm.mlir.constant(1 : i32) : i32
+    %111 = llvm.mlir.constant(1 : i32) : i32
+    %112 = llvm.mul %107, %110  : i32
+    %113 = llvm.add %109, %112  : i32
+    %114 = llvm.mul %111, %113  : i32
+    %115 = llvm.mlir.constant(2 : i32) : i32
+    %116 = llvm.urem %101, %115  : i32
+    %117 = llvm.mlir.constant(64 : i32) : i32
+    %118 = llvm.urem %104, %117  : i32
+    %119 = llvm.mlir.constant(32 : i32) : i32
+    %120 = llvm.mlir.constant(4 : i32) : i32
+    %121 = llvm.mul %116, %119  : i32
+    %122 = llvm.add %118, %121  : i32
+    %123 = llvm.mul %120, %122  : i32
+    %124 = llvm.mlir.constant(0 : i32) : i32
+    %125 = llvm.add %114, %124  : i32
+    %126 = llvm.mlir.constant(0 : i32) : i32
+    %127 = llvm.add %123, %126  : i32
+    %128 = llvm.mlir.constant(0 : i32) : i32
+    %129 = llvm.add %114, %128  : i32
+    %130 = llvm.mlir.constant(1 : i32) : i32
+    %131 = llvm.add %123, %130  : i32
+    %132 = llvm.mlir.constant(0 : i32) : i32
+    %133 = llvm.add %114, %132  : i32
+    %134 = llvm.mlir.constant(2 : i32) : i32
+    %135 = llvm.add %123, %134  : i32
+    %136 = llvm.mlir.constant(0 : i32) : i32
+    %137 = llvm.add %114, %136  : i32
+    %138 = llvm.mlir.constant(3 : i32) : i32
+    %139 = llvm.add %123, %138  : i32
+    %140 = nvvm.read.ptx.sreg.tid.x : i32
+    %141 = llvm.mlir.constant(32 : i32) : i32
+    %142 = llvm.urem %140, %141  : i32
+    %143 = llvm.udiv %140, %141  : i32
+    %144 = llvm.mlir.constant(2 : i32) : i32
+    %145 = llvm.urem %143, %144  : i32
+    %146 = llvm.udiv %143, %144  : i32
+    %147 = llvm.mlir.constant(32 : i32) : i32
+    %148 = llvm.urem %142, %147  : i32
+    %149 = llvm.udiv %142, %147  : i32
+    %150 = llvm.mlir.constant(2 : i32) : i32
+    %151 = llvm.urem %146, %150  : i32
+    %152 = llvm.mlir.constant(2 : i32) : i32
+    %153 = llvm.urem %149, %152  : i32
+    %154 = llvm.mlir.constant(1 : i32) : i32
+    %155 = llvm.mlir.constant(1 : i32) : i32
+    %156 = llvm.mul %151, %154  : i32
+    %157 = llvm.add %153, %156  : i32
+    %158 = llvm.mul %155, %157  : i32
+    %159 = llvm.mlir.constant(1 : i32) : i32
+    %160 = llvm.urem %145, %159  : i32
+    %161 = llvm.mlir.constant(1 : i32) : i32
+    %162 = llvm.urem %148, %161  : i32
+    %163 = llvm.mlir.constant(32 : i32) : i32
+    %164 = llvm.mlir.constant(4 : i32) : i32
+    %165 = llvm.mul %160, %163  : i32
+    %166 = llvm.add %162, %165  : i32
+    %167 = llvm.mul %164, %166  : i32
+    %168 = llvm.mlir.constant(0 : i32) : i32
+    %169 = llvm.add %158, %168  : i32
+    %170 = nvvm.read.ptx.sreg.tid.x : i32
+    %171 = llvm.mlir.constant(32 : i32) : i32
+    %172 = llvm.urem %170, %171  : i32
+    %173 = llvm.udiv %170, %171  : i32
+    %174 = llvm.mlir.constant(1 : i32) : i32
+    %175 = llvm.urem %173, %174  : i32
+    %176 = llvm.udiv %173, %174  : i32
+    %177 = llvm.mlir.constant(2 : i32) : i32
+    %178 = llvm.urem %172, %177  : i32
+    %179 = llvm.udiv %172, %177  : i32
+    %180 = llvm.mlir.constant(1 : i32) : i32
+    %181 = llvm.urem %175, %180  : i32
+    %182 = llvm.mlir.constant(2 : i32) : i32
+    %183 = llvm.urem %178, %182  : i32
+    %184 = llvm.mlir.constant(2 : i32) : i32
+    %185 = llvm.mlir.constant(1 : i32) : i32
+    %186 = llvm.mul %181, %184  : i32
+    %187 = llvm.add %183, %186  : i32
+    %188 = llvm.mul %185, %187  : i32
+    %189 = llvm.mlir.constant(1 : i32) : i32
+    %190 = llvm.urem %176, %189  : i32
+    %191 = llvm.mlir.constant(1 : i32) : i32
+    %192 = llvm.urem %179, %191  : i32
+    %193 = llvm.mlir.constant(16 : i32) : i32
+    %194 = llvm.mlir.constant(1 : i32) : i32
+    %195 = llvm.mul %190, %193  : i32
+    %196 = llvm.add %192, %195  : i32
+    %197 = llvm.mul %194, %196  : i32
+    %198 = llvm.mlir.addressof @global_smem : !llvm.ptr<array<0 x i8>, 3>
+    %199 = llvm.bitcast %198 : !llvm.ptr<array<0 x i8>, 3> to !llvm.ptr<i8, 3>
+    %200 = builtin.unrealized_conversion_cast %arg1 : !llvm.ptr<f32, 1> to !tt.ptr<f32>
+    %201 = builtin.unrealized_conversion_cast %arg0 : !llvm.ptr<f32, 1> to !tt.ptr<f32>
+    %202 = llvm.mlir.constant(0.000000e+00 : f32) : f32
+    %203 = llvm.bitcast %202 : f32 to f32
+    %204 = llvm.mlir.undef : !llvm.struct<(f32, f32, f32, f32)>
+    %205 = llvm.insertvalue %203, %204[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %206 = llvm.insertvalue %203, %205[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %207 = llvm.insertvalue %203, %206[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %208 = llvm.insertvalue %203, %207[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %209 = builtin.unrealized_conversion_cast %208 : !llvm.struct<(f32, f32, f32, f32)> to tensor<2x256xf32, #blocked>
+    %210 = builtin.unrealized_conversion_cast %209 : tensor<2x256xf32, #blocked> to !llvm.struct<(f32, f32, f32, f32)>
+    %211 = llvm.mlir.constant(2048 : i32) : i32
+    %212 = llvm.bitcast %211 : i32 to i32
+    %213 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %214 = llvm.insertvalue %212, %213[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %215 = llvm.insertvalue %212, %214[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %216 = llvm.insertvalue %212, %215[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %217 = llvm.insertvalue %212, %216[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %218 = llvm.mlir.constant(2048 : i32) : i32
+    %219 = llvm.bitcast %218 : i32 to i32
+    %220 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %221 = llvm.insertvalue %219, %220[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %222 = llvm.insertvalue %219, %221[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %223 = llvm.insertvalue %219, %222[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %224 = llvm.insertvalue %219, %223[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %225 = llvm.mlir.constant(4 : i32) : i32
+    %226 = llvm.bitcast %225 : i32 to i32
+    %227 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %228 = llvm.insertvalue %226, %227[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %229 = llvm.insertvalue %226, %228[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %230 = llvm.insertvalue %226, %229[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %231 = llvm.insertvalue %226, %230[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %232 = llvm.mlir.constant(256 : i32) : i32
+    %233 = llvm.mlir.constant(2048 : i32) : i32
+    %234 = llvm.mlir.constant(0 : i32) : i32
+    %235 = llvm.mlir.constant(4 : i32) : i32
+    %236 = llvm.bitcast %235 : i32 to i32
+    %237 = llvm.mlir.undef : !llvm.struct<(i32)>
+    %238 = llvm.insertvalue %236, %237[0] : !llvm.struct<(i32)> 
+    %239 = llvm.mlir.constant(2 : i32) : i32
+    %240 = nvvm.read.ptx.sreg.ctaid.x : i32
+    %241 = llvm.mul %240, %239  : i32
+    %242 = llvm.mlir.constant(0 : index) : i32
+    %243 = llvm.add %29, %242  : i32
+    %244 = llvm.mlir.undef : !llvm.struct<(i32)>
+    %245 = llvm.insertvalue %243, %244[0] : !llvm.struct<(i32)> 
+    %246 = llvm.mlir.constant(0 : index) : i32
+    %247 = llvm.add %59, %246  : i32
+    %248 = llvm.mlir.undef : !llvm.struct<(i32)>
+    %249 = llvm.insertvalue %247, %248[0] : !llvm.struct<(i32)> 
+    %250 = llvm.extractvalue %245[0] : !llvm.struct<(i32)> 
+    %251 = llvm.mlir.undef : !llvm.struct<(i32)>
+    %252 = llvm.insertvalue %250, %251[0] : !llvm.struct<(i32)> 
+    %253 = llvm.extractvalue %249[0] : !llvm.struct<(i32)> 
+    %254 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %255 = llvm.insertvalue %253, %254[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %256 = llvm.insertvalue %253, %255[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %257 = llvm.insertvalue %253, %256[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %258 = llvm.insertvalue %253, %257[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %259 = llvm.bitcast %241 : i32 to i32
+    %260 = llvm.mlir.undef : !llvm.struct<(i32)>
+    %261 = llvm.insertvalue %259, %260[0] : !llvm.struct<(i32)> 
+    %262 = llvm.bitcast %241 : i32 to i32
+    %263 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %264 = llvm.insertvalue %262, %263[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %265 = llvm.insertvalue %262, %264[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %266 = llvm.insertvalue %262, %265[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %267 = llvm.insertvalue %262, %266[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %268 = llvm.extractvalue %261[0] : !llvm.struct<(i32)> 
+    %269 = llvm.extractvalue %252[0] : !llvm.struct<(i32)> 
+    %270 = llvm.add %268, %269  : i32
+    %271 = llvm.mlir.undef : !llvm.struct<(i32)>
+    %272 = llvm.insertvalue %270, %271[0] : !llvm.struct<(i32)> 
+    %273 = llvm.extractvalue %267[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %274 = llvm.extractvalue %267[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %275 = llvm.extractvalue %267[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %276 = llvm.extractvalue %267[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %277 = llvm.extractvalue %258[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %278 = llvm.extractvalue %258[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %279 = llvm.extractvalue %258[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %280 = llvm.extractvalue %258[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %281 = llvm.add %273, %277  : i32
+    %282 = llvm.add %274, %278  : i32
+    %283 = llvm.add %275, %279  : i32
+    %284 = llvm.add %276, %280  : i32
+    %285 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %286 = llvm.insertvalue %281, %285[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %287 = llvm.insertvalue %282, %286[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %288 = llvm.insertvalue %283, %287[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %289 = llvm.insertvalue %284, %288[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %290 = llvm.extractvalue %272[0] : !llvm.struct<(i32)> 
+    %291 = llvm.extractvalue %238[0] : !llvm.struct<(i32)> 
+    %292 = llvm.icmp "slt" %290, %291 : i32
+    %293 = llvm.mlir.undef : !llvm.struct<(i1)>
+    %294 = llvm.insertvalue %292, %293[0] : !llvm.struct<(i1)> 
+    %295 = llvm.extractvalue %289[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %296 = llvm.extractvalue %289[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %297 = llvm.extractvalue %289[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %298 = llvm.extractvalue %289[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %299 = llvm.extractvalue %231[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %300 = llvm.extractvalue %231[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %301 = llvm.extractvalue %231[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %302 = llvm.extractvalue %231[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %303 = llvm.icmp "slt" %295, %299 : i32
+    %304 = llvm.icmp "slt" %296, %300 : i32
+    %305 = llvm.icmp "slt" %297, %301 : i32
+    %306 = llvm.icmp "slt" %298, %302 : i32
+    %307 = llvm.mlir.undef : !llvm.struct<(i1, i1, i1, i1)>
+    %308 = llvm.insertvalue %303, %307[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %309 = llvm.insertvalue %304, %308[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %310 = llvm.insertvalue %305, %309[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %311 = llvm.insertvalue %306, %310[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %312 = llvm.mlir.constant(0 : index) : i32
+    %313 = llvm.add %89, %312  : i32
+    %314 = llvm.add %91, %312  : i32
+    %315 = llvm.add %93, %312  : i32
+    %316 = llvm.add %95, %312  : i32
+    %317 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %318 = llvm.insertvalue %313, %317[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %319 = llvm.insertvalue %314, %318[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %320 = llvm.insertvalue %315, %319[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %321 = llvm.insertvalue %316, %320[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %322 = llvm.extractvalue %321[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %323 = llvm.extractvalue %321[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %324 = llvm.extractvalue %321[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %325 = llvm.extractvalue %321[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %326 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %327 = llvm.insertvalue %322, %326[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %328 = llvm.insertvalue %323, %327[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %329 = llvm.insertvalue %324, %328[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %330 = llvm.insertvalue %325, %329[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %331 = llvm.extractvalue %289[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %332 = llvm.extractvalue %289[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %333 = llvm.extractvalue %289[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %334 = llvm.extractvalue %289[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %335 = llvm.extractvalue %217[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %336 = llvm.extractvalue %217[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %337 = llvm.extractvalue %217[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %338 = llvm.extractvalue %217[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %339 = llvm.mul %331, %335  : i32
+    %340 = llvm.mul %332, %336  : i32
+    %341 = llvm.mul %333, %337  : i32
+    %342 = llvm.mul %334, %338  : i32
+    %343 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %344 = llvm.insertvalue %339, %343[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %345 = llvm.insertvalue %340, %344[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %346 = llvm.insertvalue %341, %345[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %347 = llvm.insertvalue %342, %346[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %348 = llvm.extractvalue %347[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %349 = llvm.extractvalue %347[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %350 = llvm.extractvalue %347[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %351 = llvm.extractvalue %347[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %352 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %353 = llvm.insertvalue %348, %352[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %354 = llvm.insertvalue %348, %353[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %355 = llvm.insertvalue %348, %354[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %356 = llvm.insertvalue %348, %355[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %357 = llvm.bitcast %arg0 : !llvm.ptr<f32, 1> to !llvm.ptr<f32, 1>
+    %358 = llvm.mlir.undef : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)>
+    %359 = llvm.insertvalue %357, %358[0] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %360 = llvm.insertvalue %357, %359[1] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %361 = llvm.insertvalue %357, %360[2] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %362 = llvm.insertvalue %357, %361[3] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %363 = llvm.extractvalue %311[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %364 = llvm.extractvalue %311[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %365 = llvm.extractvalue %311[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %366 = llvm.extractvalue %311[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %367 = llvm.mlir.undef : !llvm.struct<(i1, i1, i1, i1)>
+    %368 = llvm.insertvalue %363, %367[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %369 = llvm.insertvalue %363, %368[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %370 = llvm.insertvalue %363, %369[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %371 = llvm.insertvalue %363, %370[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    llvm.br ^bb1(%234, %210 : i32, !llvm.struct<(f32, f32, f32, f32)>)
+  ^bb1(%372: i32, %373: !llvm.struct<(f32, f32, f32, f32)>):  // 2 preds: ^bb0, ^bb2
+    %374 = builtin.unrealized_conversion_cast %373 : !llvm.struct<(f32, f32, f32, f32)> to tensor<2x256xf32, #blocked>
+    %375 = llvm.icmp "slt" %372, %233 : i32
+    llvm.cond_br %375, ^bb2, ^bb3
+  ^bb2:  // pred: ^bb1
+    %376 = llvm.bitcast %372 : i32 to i32
+    %377 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %378 = llvm.insertvalue %376, %377[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %379 = llvm.insertvalue %376, %378[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %380 = llvm.insertvalue %376, %379[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %381 = llvm.insertvalue %376, %380[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %382 = llvm.extractvalue %381[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %383 = llvm.extractvalue %381[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %384 = llvm.extractvalue %381[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %385 = llvm.extractvalue %381[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %386 = llvm.extractvalue %330[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %387 = llvm.extractvalue %330[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %388 = llvm.extractvalue %330[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %389 = llvm.extractvalue %330[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %390 = llvm.add %382, %386  : i32
+    %391 = llvm.add %383, %387  : i32
+    %392 = llvm.add %384, %388  : i32
+    %393 = llvm.add %385, %389  : i32
+    %394 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %395 = llvm.insertvalue %390, %394[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %396 = llvm.insertvalue %391, %395[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %397 = llvm.insertvalue %392, %396[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %398 = llvm.insertvalue %393, %397[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %399 = llvm.extractvalue %398[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %400 = llvm.extractvalue %398[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %401 = llvm.extractvalue %398[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %402 = llvm.extractvalue %398[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %403 = llvm.extractvalue %224[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %404 = llvm.extractvalue %224[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %405 = llvm.extractvalue %224[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %406 = llvm.extractvalue %224[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %407 = llvm.icmp "slt" %399, %403 : i32
+    %408 = llvm.icmp "slt" %400, %404 : i32
+    %409 = llvm.icmp "slt" %401, %405 : i32
+    %410 = llvm.icmp "slt" %402, %406 : i32
+    %411 = llvm.mlir.undef : !llvm.struct<(i1, i1, i1, i1)>
+    %412 = llvm.insertvalue %407, %411[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %413 = llvm.insertvalue %408, %412[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %414 = llvm.insertvalue %409, %413[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %415 = llvm.insertvalue %410, %414[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %416 = llvm.extractvalue %398[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %417 = llvm.extractvalue %398[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %418 = llvm.extractvalue %398[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %419 = llvm.extractvalue %398[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %420 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %421 = llvm.insertvalue %416, %420[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %422 = llvm.insertvalue %417, %421[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %423 = llvm.insertvalue %418, %422[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %424 = llvm.insertvalue %419, %423[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %425 = llvm.extractvalue %424[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %426 = llvm.extractvalue %424[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %427 = llvm.extractvalue %424[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %428 = llvm.extractvalue %424[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %429 = llvm.extractvalue %356[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %430 = llvm.extractvalue %356[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %431 = llvm.extractvalue %356[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %432 = llvm.extractvalue %356[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %433 = llvm.add %425, %429  : i32
+    %434 = llvm.add %426, %430  : i32
+    %435 = llvm.add %427, %431  : i32
+    %436 = llvm.add %428, %432  : i32
+    %437 = llvm.mlir.undef : !llvm.struct<(i32, i32, i32, i32)>
+    %438 = llvm.insertvalue %433, %437[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %439 = llvm.insertvalue %434, %438[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %440 = llvm.insertvalue %435, %439[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %441 = llvm.insertvalue %436, %440[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %442 = llvm.extractvalue %362[0] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %443 = llvm.extractvalue %362[1] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %444 = llvm.extractvalue %362[2] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %445 = llvm.extractvalue %362[3] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %446 = llvm.extractvalue %441[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %447 = llvm.extractvalue %441[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %448 = llvm.extractvalue %441[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %449 = llvm.extractvalue %441[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %450 = llvm.getelementptr %442[%446] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %451 = llvm.getelementptr %443[%447] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %452 = llvm.getelementptr %444[%448] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %453 = llvm.getelementptr %445[%449] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %454 = llvm.mlir.undef : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)>
+    %455 = llvm.insertvalue %450, %454[0] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %456 = llvm.insertvalue %451, %455[1] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %457 = llvm.insertvalue %452, %456[2] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %458 = llvm.insertvalue %453, %457[3] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %459 = llvm.extractvalue %415[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %460 = llvm.extractvalue %415[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %461 = llvm.extractvalue %415[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %462 = llvm.extractvalue %415[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %463 = llvm.mlir.undef : !llvm.struct<(i1, i1, i1, i1)>
+    %464 = llvm.insertvalue %459, %463[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %465 = llvm.insertvalue %460, %464[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %466 = llvm.insertvalue %461, %465[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %467 = llvm.insertvalue %462, %466[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %468 = llvm.extractvalue %467[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %469 = llvm.extractvalue %467[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %470 = llvm.extractvalue %467[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %471 = llvm.extractvalue %467[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %472 = llvm.extractvalue %371[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %473 = llvm.extractvalue %371[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %474 = llvm.extractvalue %371[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %475 = llvm.extractvalue %371[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %476 = llvm.and %468, %472  : i1
+    %477 = llvm.and %469, %473  : i1
+    %478 = llvm.and %470, %474  : i1
+    %479 = llvm.and %471, %475  : i1
+    %480 = llvm.mlir.undef : !llvm.struct<(i1, i1, i1, i1)>
+    %481 = llvm.insertvalue %476, %480[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %482 = llvm.insertvalue %477, %481[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %483 = llvm.insertvalue %478, %482[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %484 = llvm.insertvalue %479, %483[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %485 = llvm.extractvalue %458[0] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %486 = llvm.extractvalue %458[1] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %487 = llvm.extractvalue %458[2] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %488 = llvm.extractvalue %458[3] : !llvm.struct<(ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>, ptr<f32, 1>)> 
+    %489 = llvm.extractvalue %484[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %490 = llvm.extractvalue %484[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %491 = llvm.extractvalue %484[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %492 = llvm.extractvalue %484[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %493 = llvm.extractvalue %208[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %494 = llvm.extractvalue %208[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %495 = llvm.extractvalue %208[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %496 = llvm.extractvalue %208[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %497 = llvm.mlir.undef : vector<1xf32>
+    %498 = llvm.mlir.constant(0 : index) : i32
+    %499 = llvm.insertelement %493, %497[%498 : i32] : vector<1xf32>
+    %500 = llvm.bitcast %499 : vector<1xf32> to i32
+    %501 = llvm.mlir.undef : vector<1xf32>
+    %502 = llvm.mlir.constant(0 : index) : i32
+    %503 = llvm.insertelement %494, %501[%502 : i32] : vector<1xf32>
+    %504 = llvm.bitcast %503 : vector<1xf32> to i32
+    %505 = llvm.mlir.undef : vector<1xf32>
+    %506 = llvm.mlir.constant(0 : index) : i32
+    %507 = llvm.insertelement %495, %505[%506 : i32] : vector<1xf32>
+    %508 = llvm.bitcast %507 : vector<1xf32> to i32
+    %509 = llvm.mlir.undef : vector<1xf32>
+    %510 = llvm.mlir.constant(0 : index) : i32
+    %511 = llvm.insertelement %496, %509[%510 : i32] : vector<1xf32>
+    %512 = llvm.bitcast %511 : vector<1xf32> to i32
+    %513 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "mov.u32 $0, 0x0;\0A\09mov.u32 $1, 0x0;\0A\09mov.u32 $2, 0x0;\0A\09mov.u32 $3, 0x0;\0A\09@$5 ld.global.v4.b32 { $0, $1, $2, $3 }, [ $4 + 0 ];\0A\09@!$7 mov.u32 $0, $6;\0A\09@!$9 mov.u32 $1, $8;\0A\09@!$11 mov.u32 $2, $10;\0A\09@!$13 mov.u32 $3, $12;", "=r,=r,=r,=r,l,b,r,b,r,b,r,b,r,b" %485, %489, %500, %489, %504, %489, %508, %489, %512, %489 : (!llvm.ptr<f32, 1>, i1, i32, i1, i32, i1, i32, i1, i32, i1) -> !llvm.struct<(i32, i32, i32, i32)>
+    %514 = llvm.extractvalue %513[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %515 = llvm.bitcast %514 : i32 to vector<1xf32>
+    %516 = llvm.extractvalue %513[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %517 = llvm.bitcast %516 : i32 to vector<1xf32>
+    %518 = llvm.extractvalue %513[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %519 = llvm.bitcast %518 : i32 to vector<1xf32>
+    %520 = llvm.extractvalue %513[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %521 = llvm.bitcast %520 : i32 to vector<1xf32>
+    %522 = llvm.mlir.constant(0 : index) : i32
+    %523 = llvm.extractelement %515[%522 : i32] : vector<1xf32>
+    %524 = llvm.mlir.constant(0 : index) : i32
+    %525 = llvm.extractelement %517[%524 : i32] : vector<1xf32>
+    %526 = llvm.mlir.constant(0 : index) : i32
+    %527 = llvm.extractelement %519[%526 : i32] : vector<1xf32>
+    %528 = llvm.mlir.constant(0 : index) : i32
+    %529 = llvm.extractelement %521[%528 : i32] : vector<1xf32>
+    %530 = llvm.mlir.undef : !llvm.struct<(f32, f32, f32, f32)>
+    %531 = llvm.insertvalue %523, %530[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %532 = llvm.insertvalue %525, %531[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %533 = llvm.insertvalue %527, %532[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %534 = llvm.insertvalue %529, %533[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %535 = llvm.extractvalue %373[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %536 = llvm.extractvalue %373[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %537 = llvm.extractvalue %373[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %538 = llvm.extractvalue %373[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %539 = llvm.extractvalue %534[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %540 = llvm.extractvalue %534[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %541 = llvm.extractvalue %534[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %542 = llvm.extractvalue %534[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %543 = llvm.fadd %535, %539  : f32
+    %544 = llvm.fadd %536, %540  : f32
+    %545 = llvm.fadd %537, %541  : f32
+    %546 = llvm.fadd %538, %542  : f32
+    %547 = llvm.mlir.undef : !llvm.struct<(f32, f32, f32, f32)>
+    %548 = llvm.insertvalue %543, %547[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %549 = llvm.insertvalue %544, %548[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %550 = llvm.insertvalue %545, %549[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %551 = llvm.insertvalue %546, %550[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %552 = llvm.extractvalue %484[0] : !llvm.struct<(i1, i1, i1, i1)> 
+    %553 = llvm.extractvalue %484[1] : !llvm.struct<(i1, i1, i1, i1)> 
+    %554 = llvm.extractvalue %484[2] : !llvm.struct<(i1, i1, i1, i1)> 
+    %555 = llvm.extractvalue %484[3] : !llvm.struct<(i1, i1, i1, i1)> 
+    %556 = llvm.extractvalue %551[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %557 = llvm.extractvalue %551[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %558 = llvm.extractvalue %551[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %559 = llvm.extractvalue %551[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %560 = llvm.extractvalue %373[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %561 = llvm.extractvalue %373[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %562 = llvm.extractvalue %373[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %563 = llvm.extractvalue %373[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %564 = llvm.select %552, %556, %560 : i1, f32
+    %565 = llvm.select %553, %557, %561 : i1, f32
+    %566 = llvm.select %554, %558, %562 : i1, f32
+    %567 = llvm.select %555, %559, %563 : i1, f32
+    %568 = llvm.mlir.undef : !llvm.struct<(f32, f32, f32, f32)>
+    %569 = llvm.insertvalue %564, %568[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %570 = llvm.insertvalue %565, %569[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %571 = llvm.insertvalue %566, %570[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %572 = llvm.insertvalue %567, %571[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %573 = builtin.unrealized_conversion_cast %572 : !llvm.struct<(f32, f32, f32, f32)> to tensor<2x256xf32, #blocked>
+    %574 = builtin.unrealized_conversion_cast %573 : tensor<2x256xf32, #blocked> to !llvm.struct<(f32, f32, f32, f32)>
+    %575 = llvm.add %372, %232  : i32
+    llvm.br ^bb1(%575, %574 : i32, !llvm.struct<(f32, f32, f32, f32)>)
+  ^bb3:  // pred: ^bb1
+    %576 = llvm.mlir.constant(0 : i32) : i32
+    %577 = llvm.getelementptr %199[%576] : (!llvm.ptr<i8, 3>, i32) -> !llvm.ptr<i8, 3>
+    %578 = llvm.bitcast %577 : !llvm.ptr<i8, 3> to !llvm.ptr<f32, 3>
+    %579 = llvm.extractvalue %373[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %580 = llvm.extractvalue %373[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %581 = llvm.extractvalue %373[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %582 = llvm.extractvalue %373[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %583 = llvm.fadd %579, %580  : f32
+    %584 = llvm.fadd %583, %581  : f32
+    %585 = llvm.fadd %584, %582  : f32
+    %586 = nvvm.read.ptx.sreg.tid.x : i32
+    %587 = llvm.mlir.constant(32 : i32) : i32
+    %588 = llvm.udiv %586, %587  : i32
+    %589 = llvm.urem %586, %587  : i32
+    %590 = llvm.mlir.constant(32 : i32) : i32
+    %591 = llvm.urem %589, %590  : i32
+    %592 = llvm.udiv %589, %590  : i32
+    %593 = llvm.mlir.constant(2 : i32) : i32
+    %594 = llvm.urem %588, %593  : i32
+    %595 = llvm.udiv %588, %593  : i32
+    %596 = llvm.mlir.constant(0 : i32) : i32
+    %597 = llvm.icmp "eq" %591, %596 : i32
+    %598 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x10, 0x1f, 0xffffffff;", "=r,r" %585 : (f32) -> f32
+    %599 = llvm.fadd %585, %598  : f32
+    %600 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x8, 0x1f, 0xffffffff;", "=r,r" %599 : (f32) -> f32
+    %601 = llvm.fadd %599, %600  : f32
+    %602 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x4, 0x1f, 0xffffffff;", "=r,r" %601 : (f32) -> f32
+    %603 = llvm.fadd %601, %602  : f32
+    %604 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x2, 0x1f, 0xffffffff;", "=r,r" %603 : (f32) -> f32
+    %605 = llvm.fadd %603, %604  : f32
+    %606 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x1, 0x1f, 0xffffffff;", "=r,r" %605 : (f32) -> f32
+    %607 = llvm.fadd %605, %606  : f32
+    %608 = llvm.mlir.constant(0 : i32) : i32
+    %609 = llvm.mlir.constant(2 : i32) : i32
+    %610 = llvm.mul %125, %609  : i32
+    %611 = llvm.add %610, %594  : i32
+    %612 = llvm.getelementptr %578[%611] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %613 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "@$2 st.shared.b32 [ $0 + 0 ], $1;", "r,r,b" %612, %607, %597 : (!llvm.ptr<f32, 3>, f32, i1) -> !llvm.void
+    nvvm.barrier0
+    %614 = llvm.getelementptr %578[%586] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %615 = llvm.load %614 : !llvm.ptr<f32, 3>
+    %616 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x1, 0x1f, 0xffffffff;", "=r,r" %615 : (f32) -> f32
+    %617 = llvm.fadd %615, %616  : f32
+    %618 = llvm.getelementptr %578[%586] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %619 = llvm.mlir.constant(4 : i32) : i32
+    %620 = llvm.icmp "slt" %586, %619 : i32
+    %621 = llvm.mlir.constant(2 : i32) : i32
+    %622 = llvm.urem %589, %621  : i32
+    %623 = llvm.icmp "eq" %622, %596 : i32
+    %624 = llvm.and %620, %623  : i1
+    %625 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "@$2 st.shared.b32 [ $0 + 0 ], $1;", "r,r,b" %618, %617, %624 : (!llvm.ptr<f32, 3>, f32, i1) -> !llvm.void
+    nvvm.barrier0
+    %626 = llvm.mlir.constant(0 : i32) : i32
+    %627 = llvm.mlir.constant(0 : i32) : i32
+    %628 = llvm.mlir.constant(2 : i32) : i32
+    %629 = llvm.mul %169, %628  : i32
+    %630 = llvm.add %629, %626  : i32
+    %631 = llvm.getelementptr %578[%630] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %632 = llvm.load %631 : !llvm.ptr<f32, 3>
+    %633 = llvm.mlir.undef : !llvm.struct<(f32)>
+    %634 = llvm.insertvalue %632, %633[0] : !llvm.struct<(f32)> 
+    nvvm.barrier0
+    %635 = llvm.mlir.constant(0 : i32) : i32
+    %636 = llvm.getelementptr %199[%635] : (!llvm.ptr<i8, 3>, i32) -> !llvm.ptr<i8, 3>
+    %637 = llvm.bitcast %636 : !llvm.ptr<i8, 3> to !llvm.ptr<f32, 3>
+    %638 = llvm.extractvalue %634[0] : !llvm.struct<(f32)> 
+    %639 = llvm.mlir.constant(0 : i32) : i32
+    %640 = llvm.add %158, %639  : i32
+    %641 = llvm.mlir.constant(1 : i32) : i32
+    %642 = llvm.add %167, %641  : i32
+    %643 = llvm.mlir.constant(0 : i32) : i32
+    %644 = llvm.getelementptr %637[%640] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %645 = llvm.bitcast %644 : !llvm.ptr<f32, 3> to !llvm.ptr<vector<1xf32>, 3>
+    %646 = llvm.mlir.undef : vector<1xf32>
+    %647 = llvm.mlir.constant(0 : i32) : i32
+    %648 = llvm.insertelement %638, %646[%647 : i32] : vector<1xf32>
+    llvm.store %648, %645 : !llvm.ptr<vector<1xf32>, 3>
+    nvvm.barrier0
+    %649 = llvm.mlir.constant(0 : i32) : i32
+    %650 = llvm.add %188, %649  : i32
+    %651 = llvm.mlir.constant(1 : i32) : i32
+    %652 = llvm.add %197, %651  : i32
+    %653 = llvm.mlir.constant(0 : i32) : i32
+    %654 = llvm.getelementptr %637[%650] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %655 = llvm.bitcast %654 : !llvm.ptr<f32, 3> to !llvm.ptr<vector<1xf32>, 3>
+    %656 = llvm.load %655 : !llvm.ptr<vector<1xf32>, 3>
+    %657 = llvm.mlir.constant(0 : i32) : i32
+    %658 = llvm.extractelement %656[%657 : i32] : vector<1xf32>
+    %659 = llvm.mlir.undef : !llvm.struct<(f32)>
+    %660 = llvm.insertvalue %658, %659[0] : !llvm.struct<(f32)> 
+    %661 = llvm.extractvalue %660[0] : !llvm.struct<(f32)> 
+    %662 = llvm.mlir.undef : !llvm.struct<(f32)>
+    %663 = llvm.insertvalue %661, %662[0] : !llvm.struct<(f32)> 
+    %664 = llvm.bitcast %arg1 : !llvm.ptr<f32, 1> to !llvm.ptr<f32, 1>
+    %665 = llvm.mlir.undef : !llvm.struct<(ptr<f32, 1>)>
+    %666 = llvm.insertvalue %664, %665[0] : !llvm.struct<(ptr<f32, 1>)> 
+    %667 = llvm.extractvalue %666[0] : !llvm.struct<(ptr<f32, 1>)> 
+    %668 = llvm.extractvalue %272[0] : !llvm.struct<(i32)> 
+    %669 = llvm.getelementptr %667[%668] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %670 = llvm.mlir.undef : !llvm.struct<(ptr<f32, 1>)>
+    %671 = llvm.insertvalue %669, %670[0] : !llvm.struct<(ptr<f32, 1>)> 
+    %672 = llvm.extractvalue %671[0] : !llvm.struct<(ptr<f32, 1>)> 
+    %673 = llvm.extractvalue %663[0] : !llvm.struct<(f32)> 
+    %674 = llvm.extractvalue %294[0] : !llvm.struct<(i1)> 
+    %675 = llvm.mlir.constant(true) : i1
+    %676 = nvvm.read.ptx.sreg.tid.x : i32
+    %677 = llvm.mlir.constant(32 : i32) : i32
+    %678 = llvm.urem %676, %677  : i32
+    %679 = llvm.udiv %676, %677  : i32
+    %680 = llvm.mlir.constant(1 : i32) : i32
+    %681 = llvm.urem %679, %680  : i32
+    %682 = llvm.udiv %679, %680  : i32
+    %683 = llvm.mlir.constant(2 : i32) : i32
+    %684 = llvm.urem %678, %683  : i32
+    %685 = llvm.udiv %678, %683  : i32
+    %686 = llvm.mlir.constant(16 : i32) : i32
+    %687 = llvm.mul %682, %686  : i32
+    %688 = llvm.add %687, %685  : i32
+    %689 = llvm.mlir.constant(1 : i32) : i32
+    %690 = llvm.mlir.constant(1 : i32) : i32
+    %691 = llvm.mul %688, %690  : i32
+    %692 = llvm.icmp "slt" %691, %689 : i32
+    %693 = llvm.and %675, %692  : i1
+    %694 = llvm.mlir.undef : vector<1xf32>
+    %695 = llvm.bitcast %673 : f32 to f32
+    %696 = llvm.mlir.constant(0 : i32) : i32
+    %697 = llvm.insertelement %695, %694[%696 : i32] : vector<1xf32>
+    %698 = llvm.bitcast %697 : vector<1xf32> to i32
+    %699 = llvm.and %693, %674  : i1
+    %700 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "@$2 st.global.b32 [ $1 + 0 ], { $0 };", "r,l,b" %698, %672, %699 : (i32, !llvm.ptr<f32, 1>, i1) -> !llvm.void
+    llvm.return
+  }
+}
+
+
+// -----// IR Dump After Canonicalizer (canonicalize) //----- //
+module attributes {"triton_gpu.num-warps" = 4 : i32, triton_gpu.shared = 512 : i32, "triton_gpu.threads-per-warp" = 32 : i32} {
+  llvm.mlir.global external @global_smem() {addr_space = 3 : i32} : !llvm.array<0 x i8>
+  llvm.func @sumrow_kernel_0d1d23d(%arg0: !llvm.ptr<f32, 1> {tt.divisibility = 16 : i32}, %arg1: !llvm.ptr<f32, 1> {tt.divisibility = 16 : i32}, %arg2: i32, %arg3: i32 {tt.divisibility = 16 : i32}) attributes {noinline = false, nvvm.kernel = 1 : ui1, nvvm.maxntid = [128 : i32], sym_visibility = "public"} {
+    %0 = llvm.mlir.constant(true) : i1
+    %1 = llvm.mlir.constant(0 : index) : i32
+    %2 = llvm.mlir.constant(256 : i32) : i32
+    %3 = llvm.mlir.constant(2048 : i32) : i32
+    %4 = llvm.mlir.constant(0.000000e+00 : f32) : f32
+    %5 = llvm.mlir.constant(3 : i32) : i32
+    %6 = llvm.mlir.constant(64 : i32) : i32
+    %7 = llvm.mlir.constant(4 : i32) : i32
+    %8 = llvm.mlir.constant(0 : i32) : i32
+    %9 = llvm.mlir.constant(16 : i32) : i32
+    %10 = llvm.mlir.constant(2 : i32) : i32
+    %11 = llvm.mlir.constant(1 : i32) : i32
+    %12 = llvm.mlir.constant(32 : i32) : i32
+    %13 = nvvm.read.ptx.sreg.tid.x : i32
+    %14 = llvm.urem %13, %12  : i32
+    %15 = llvm.udiv %13, %12  : i32
+    %16 = llvm.urem %15, %11  : i32
+    %17 = llvm.urem %14, %10  : i32
+    %18 = llvm.urem %16, %11  : i32
+    %19 = llvm.urem %17, %10  : i32
+    %20 = llvm.mul %18, %10  : i32
+    %21 = llvm.add %19, %20  : i32
+    %22 = llvm.mul %21, %11  : i32
+    %23 = llvm.add %22, %8  : i32
+    %24 = nvvm.read.ptx.sreg.tid.x : i32
+    %25 = llvm.urem %24, %12  : i32
+    %26 = llvm.udiv %24, %12  : i32
+    %27 = llvm.udiv %26, %10  : i32
+    %28 = llvm.udiv %25, %12  : i32
+    %29 = llvm.urem %27, %10  : i32
+    %30 = llvm.urem %28, %10  : i32
+    %31 = llvm.mul %29, %11  : i32
+    %32 = llvm.add %30, %31  : i32
+    %33 = llvm.mul %32, %11  : i32
+    %34 = llvm.add %33, %8  : i32
+    %35 = nvvm.read.ptx.sreg.tid.x : i32
+    %36 = llvm.urem %35, %12  : i32
+    %37 = llvm.udiv %35, %12  : i32
+    %38 = llvm.urem %37, %10  : i32
+    %39 = llvm.urem %36, %12  : i32
+    %40 = llvm.urem %38, %10  : i32
+    %41 = llvm.urem %39, %6  : i32
+    %42 = llvm.mul %40, %12  : i32
+    %43 = llvm.add %41, %42  : i32
+    %44 = llvm.mul %43, %7  : i32
+    %45 = llvm.add %44, %8  : i32
+    %46 = llvm.add %44, %11  : i32
+    %47 = llvm.add %44, %10  : i32
+    %48 = llvm.add %44, %5  : i32
+    %49 = nvvm.read.ptx.sreg.tid.x : i32
+    %50 = llvm.urem %49, %12  : i32
+    %51 = llvm.udiv %49, %12  : i32
+    %52 = llvm.udiv %51, %10  : i32
+    %53 = llvm.udiv %50, %12  : i32
+    %54 = llvm.urem %52, %10  : i32
+    %55 = llvm.urem %53, %10  : i32
+    %56 = llvm.mul %54, %11  : i32
+    %57 = llvm.add %55, %56  : i32
+    %58 = llvm.mul %57, %11  : i32
+    %59 = llvm.add %58, %8  : i32
+    %60 = nvvm.read.ptx.sreg.tid.x : i32
+    %61 = llvm.urem %60, %12  : i32
+    %62 = llvm.udiv %60, %12  : i32
+    %63 = llvm.udiv %62, %10  : i32
+    %64 = llvm.udiv %61, %12  : i32
+    %65 = llvm.urem %63, %10  : i32
+    %66 = llvm.urem %64, %10  : i32
+    %67 = llvm.mul %65, %11  : i32
+    %68 = llvm.add %66, %67  : i32
+    %69 = llvm.mul %68, %11  : i32
+    %70 = llvm.add %69, %8  : i32
+    %71 = nvvm.read.ptx.sreg.tid.x : i32
+    %72 = llvm.urem %71, %12  : i32
+    %73 = llvm.udiv %71, %12  : i32
+    %74 = llvm.urem %73, %11  : i32
+    %75 = llvm.urem %72, %10  : i32
+    %76 = llvm.urem %74, %11  : i32
+    %77 = llvm.urem %75, %10  : i32
+    %78 = llvm.mul %76, %10  : i32
+    %79 = llvm.add %77, %78  : i32
+    %80 = llvm.mul %79, %11  : i32
+    %81 = llvm.mlir.addressof @global_smem : !llvm.ptr<array<0 x i8>, 3>
+    %82 = llvm.bitcast %81 : !llvm.ptr<array<0 x i8>, 3> to !llvm.ptr<i8, 3>
+    %83 = llvm.mlir.undef : !llvm.struct<(f32, f32, f32, f32)>
+    %84 = llvm.insertvalue %4, %83[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %85 = llvm.insertvalue %4, %84[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %86 = llvm.insertvalue %4, %85[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %87 = llvm.insertvalue %4, %86[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %88 = nvvm.read.ptx.sreg.ctaid.x : i32
+    %89 = llvm.mul %88, %10  : i32
+    %90 = llvm.add %23, %1  : i32
+    %91 = llvm.add %34, %1  : i32
+    %92 = llvm.add %89, %90  : i32
+    %93 = llvm.add %89, %91  : i32
+    %94 = llvm.icmp "slt" %92, %7 : i32
+    %95 = llvm.icmp "slt" %93, %7 : i32
+    %96 = llvm.add %45, %1  : i32
+    %97 = llvm.add %46, %1  : i32
+    %98 = llvm.add %47, %1  : i32
+    %99 = llvm.add %48, %1  : i32
+    %100 = llvm.mul %93, %3  : i32
+    llvm.br ^bb1(%8, %87 : i32, !llvm.struct<(f32, f32, f32, f32)>)
+  ^bb1(%101: i32, %102: !llvm.struct<(f32, f32, f32, f32)>):  // 2 preds: ^bb0, ^bb2
+    %103 = llvm.icmp "slt" %101, %3 : i32
+    llvm.cond_br %103, ^bb2, ^bb3
+  ^bb2:  // pred: ^bb1
+    %104 = llvm.add %101, %96  : i32
+    %105 = llvm.add %101, %97  : i32
+    %106 = llvm.add %101, %98  : i32
+    %107 = llvm.add %101, %99  : i32
+    %108 = llvm.icmp "slt" %104, %3 : i32
+    %109 = llvm.icmp "slt" %105, %3 : i32
+    %110 = llvm.icmp "slt" %106, %3 : i32
+    %111 = llvm.icmp "slt" %107, %3 : i32
+    %112 = llvm.add %104, %100  : i32
+    %113 = llvm.getelementptr %arg0[%112] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %114 = llvm.and %108, %95  : i1
+    %115 = llvm.and %109, %95  : i1
+    %116 = llvm.and %110, %95  : i1
+    %117 = llvm.and %111, %95  : i1
+    %118 = llvm.mlir.undef : vector<1xf32>
+    %119 = llvm.insertelement %4, %118[%1 : i32] : vector<1xf32>
+    %120 = llvm.bitcast %119 : vector<1xf32> to i32
+    %121 = llvm.mlir.undef : vector<1xf32>
+    %122 = llvm.insertelement %4, %121[%1 : i32] : vector<1xf32>
+    %123 = llvm.bitcast %122 : vector<1xf32> to i32
+    %124 = llvm.mlir.undef : vector<1xf32>
+    %125 = llvm.insertelement %4, %124[%1 : i32] : vector<1xf32>
+    %126 = llvm.bitcast %125 : vector<1xf32> to i32
+    %127 = llvm.mlir.undef : vector<1xf32>
+    %128 = llvm.insertelement %4, %127[%1 : i32] : vector<1xf32>
+    %129 = llvm.bitcast %128 : vector<1xf32> to i32
+    %130 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "mov.u32 $0, 0x0;\0A\09mov.u32 $1, 0x0;\0A\09mov.u32 $2, 0x0;\0A\09mov.u32 $3, 0x0;\0A\09@$5 ld.global.v4.b32 { $0, $1, $2, $3 }, [ $4 + 0 ];\0A\09@!$7 mov.u32 $0, $6;\0A\09@!$9 mov.u32 $1, $8;\0A\09@!$11 mov.u32 $2, $10;\0A\09@!$13 mov.u32 $3, $12;", "=r,=r,=r,=r,l,b,r,b,r,b,r,b,r,b" %113, %114, %120, %114, %123, %114, %126, %114, %129, %114 : (!llvm.ptr<f32, 1>, i1, i32, i1, i32, i1, i32, i1, i32, i1) -> !llvm.struct<(i32, i32, i32, i32)>
+    %131 = llvm.extractvalue %130[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %132 = llvm.bitcast %131 : i32 to vector<1xf32>
+    %133 = llvm.extractvalue %130[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %134 = llvm.bitcast %133 : i32 to vector<1xf32>
+    %135 = llvm.extractvalue %130[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %136 = llvm.bitcast %135 : i32 to vector<1xf32>
+    %137 = llvm.extractvalue %130[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %138 = llvm.bitcast %137 : i32 to vector<1xf32>
+    %139 = llvm.extractelement %132[%1 : i32] : vector<1xf32>
+    %140 = llvm.extractelement %134[%1 : i32] : vector<1xf32>
+    %141 = llvm.extractelement %136[%1 : i32] : vector<1xf32>
+    %142 = llvm.extractelement %138[%1 : i32] : vector<1xf32>
+    %143 = llvm.extractvalue %102[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %144 = llvm.extractvalue %102[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %145 = llvm.extractvalue %102[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %146 = llvm.extractvalue %102[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %147 = llvm.fadd %143, %139  : f32
+    %148 = llvm.fadd %144, %140  : f32
+    %149 = llvm.fadd %145, %141  : f32
+    %150 = llvm.fadd %146, %142  : f32
+    %151 = llvm.extractvalue %102[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %152 = llvm.extractvalue %102[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %153 = llvm.extractvalue %102[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %154 = llvm.extractvalue %102[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %155 = llvm.select %114, %147, %151 : i1, f32
+    %156 = llvm.select %115, %148, %152 : i1, f32
+    %157 = llvm.select %116, %149, %153 : i1, f32
+    %158 = llvm.select %117, %150, %154 : i1, f32
+    %159 = llvm.mlir.undef : !llvm.struct<(f32, f32, f32, f32)>
+    %160 = llvm.insertvalue %155, %159[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %161 = llvm.insertvalue %156, %160[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %162 = llvm.insertvalue %157, %161[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %163 = llvm.insertvalue %158, %162[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %164 = llvm.add %101, %2  : i32
+    llvm.br ^bb1(%164, %163 : i32, !llvm.struct<(f32, f32, f32, f32)>)
+  ^bb3:  // pred: ^bb1
+    %165 = llvm.bitcast %82 : !llvm.ptr<i8, 3> to !llvm.ptr<f32, 3>
+    %166 = llvm.extractvalue %102[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %167 = llvm.extractvalue %102[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %168 = llvm.extractvalue %102[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %169 = llvm.extractvalue %102[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %170 = llvm.fadd %166, %167  : f32
+    %171 = llvm.fadd %170, %168  : f32
+    %172 = llvm.fadd %171, %169  : f32
+    %173 = nvvm.read.ptx.sreg.tid.x : i32
+    %174 = llvm.udiv %173, %12  : i32
+    %175 = llvm.urem %173, %12  : i32
+    %176 = llvm.urem %175, %12  : i32
+    %177 = llvm.urem %174, %10  : i32
+    %178 = llvm.icmp "eq" %176, %8 : i32
+    %179 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x10, 0x1f, 0xffffffff;", "=r,r" %172 : (f32) -> f32
+    %180 = llvm.fadd %172, %179  : f32
+    %181 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x8, 0x1f, 0xffffffff;", "=r,r" %180 : (f32) -> f32
+    %182 = llvm.fadd %180, %181  : f32
+    %183 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x4, 0x1f, 0xffffffff;", "=r,r" %182 : (f32) -> f32
+    %184 = llvm.fadd %182, %183  : f32
+    %185 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x2, 0x1f, 0xffffffff;", "=r,r" %184 : (f32) -> f32
+    %186 = llvm.fadd %184, %185  : f32
+    %187 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x1, 0x1f, 0xffffffff;", "=r,r" %186 : (f32) -> f32
+    %188 = llvm.fadd %186, %187  : f32
+    %189 = llvm.mul %59, %10  : i32
+    %190 = llvm.add %189, %177  : i32
+    %191 = llvm.getelementptr %165[%190] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %192 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "@$2 st.shared.b32 [ $0 + 0 ], $1;", "r,r,b" %191, %188, %178 : (!llvm.ptr<f32, 3>, f32, i1) -> !llvm.void
+    nvvm.barrier0
+    %193 = llvm.getelementptr %165[%173] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %194 = llvm.load %193 : !llvm.ptr<f32, 3>
+    %195 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x1, 0x1f, 0xffffffff;", "=r,r" %194 : (f32) -> f32
+    %196 = llvm.fadd %194, %195  : f32
+    %197 = llvm.getelementptr %165[%173] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %198 = llvm.icmp "slt" %173, %7 : i32
+    %199 = llvm.urem %175, %10  : i32
+    %200 = llvm.icmp "eq" %199, %8 : i32
+    %201 = llvm.and %198, %200  : i1
+    %202 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "@$2 st.shared.b32 [ $0 + 0 ], $1;", "r,r,b" %197, %196, %201 : (!llvm.ptr<f32, 3>, f32, i1) -> !llvm.void
+    nvvm.barrier0
+    %203 = llvm.mul %70, %10  : i32
+    %204 = llvm.add %203, %8  : i32
+    %205 = llvm.getelementptr %165[%204] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %206 = llvm.load %205 : !llvm.ptr<f32, 3>
+    nvvm.barrier0
+    %207 = llvm.bitcast %82 : !llvm.ptr<i8, 3> to !llvm.ptr<f32, 3>
+    %208 = llvm.add %69, %8  : i32
+    %209 = llvm.getelementptr %207[%208] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %210 = llvm.bitcast %209 : !llvm.ptr<f32, 3> to !llvm.ptr<vector<1xf32>, 3>
+    %211 = llvm.mlir.undef : vector<1xf32>
+    %212 = llvm.insertelement %206, %211[%8 : i32] : vector<1xf32>
+    llvm.store %212, %210 : !llvm.ptr<vector<1xf32>, 3>
+    nvvm.barrier0
+    %213 = llvm.add %80, %8  : i32
+    %214 = llvm.getelementptr %207[%213] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %215 = llvm.bitcast %214 : !llvm.ptr<f32, 3> to !llvm.ptr<vector<1xf32>, 3>
+    %216 = llvm.load %215 : !llvm.ptr<vector<1xf32>, 3>
+    %217 = llvm.extractelement %216[%8 : i32] : vector<1xf32>
+    %218 = llvm.getelementptr %arg1[%92] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %219 = nvvm.read.ptx.sreg.tid.x : i32
+    %220 = llvm.urem %219, %12  : i32
+    %221 = llvm.udiv %219, %12  : i32
+    %222 = llvm.udiv %221, %11  : i32
+    %223 = llvm.udiv %220, %10  : i32
+    %224 = llvm.mul %222, %9  : i32
+    %225 = llvm.add %224, %223  : i32
+    %226 = llvm.mul %225, %11  : i32
+    %227 = llvm.icmp "slt" %226, %11 : i32
+    %228 = llvm.and %0, %227  : i1
+    %229 = llvm.mlir.undef : vector<1xf32>
+    %230 = llvm.insertelement %217, %229[%8 : i32] : vector<1xf32>
+    %231 = llvm.bitcast %230 : vector<1xf32> to i32
+    %232 = llvm.and %228, %94  : i1
+    %233 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "@$2 st.global.b32 [ $1 + 0 ], { $0 };", "r,l,b" %231, %218, %232 : (i32, !llvm.ptr<f32, 1>, i1) -> !llvm.void
+    llvm.return
+  }
+}
+
+
+// -----// IR Dump After CSE (cse) //----- //
+module attributes {"triton_gpu.num-warps" = 4 : i32, triton_gpu.shared = 512 : i32, "triton_gpu.threads-per-warp" = 32 : i32} {
+  llvm.mlir.global external @global_smem() {addr_space = 3 : i32} : !llvm.array<0 x i8>
+  llvm.func @sumrow_kernel_0d1d23d(%arg0: !llvm.ptr<f32, 1> {tt.divisibility = 16 : i32}, %arg1: !llvm.ptr<f32, 1> {tt.divisibility = 16 : i32}, %arg2: i32, %arg3: i32 {tt.divisibility = 16 : i32}) attributes {noinline = false, nvvm.kernel = 1 : ui1, nvvm.maxntid = [128 : i32], sym_visibility = "public"} {
+    %0 = llvm.mlir.constant(true) : i1
+    %1 = llvm.mlir.constant(0 : index) : i32
+    %2 = llvm.mlir.constant(256 : i32) : i32
+    %3 = llvm.mlir.constant(2048 : i32) : i32
+    %4 = llvm.mlir.constant(0.000000e+00 : f32) : f32
+    %5 = llvm.mlir.constant(3 : i32) : i32
+    %6 = llvm.mlir.constant(64 : i32) : i32
+    %7 = llvm.mlir.constant(4 : i32) : i32
+    %8 = llvm.mlir.constant(0 : i32) : i32
+    %9 = llvm.mlir.constant(16 : i32) : i32
+    %10 = llvm.mlir.constant(2 : i32) : i32
+    %11 = llvm.mlir.constant(1 : i32) : i32
+    %12 = llvm.mlir.constant(32 : i32) : i32
+    %13 = nvvm.read.ptx.sreg.tid.x : i32
+    %14 = llvm.urem %13, %12  : i32
+    %15 = llvm.udiv %13, %12  : i32
+    %16 = llvm.urem %15, %11  : i32
+    %17 = llvm.urem %14, %10  : i32
+    %18 = llvm.urem %16, %11  : i32
+    %19 = llvm.urem %17, %10  : i32
+    %20 = llvm.mul %18, %10  : i32
+    %21 = llvm.add %19, %20  : i32
+    %22 = llvm.mul %21, %11  : i32
+    %23 = llvm.add %22, %8  : i32
+    %24 = llvm.udiv %15, %10  : i32
+    %25 = llvm.udiv %14, %12  : i32
+    %26 = llvm.urem %24, %10  : i32
+    %27 = llvm.urem %25, %10  : i32
+    %28 = llvm.mul %26, %11  : i32
+    %29 = llvm.add %27, %28  : i32
+    %30 = llvm.mul %29, %11  : i32
+    %31 = llvm.add %30, %8  : i32
+    %32 = llvm.urem %15, %10  : i32
+    %33 = llvm.urem %14, %12  : i32
+    %34 = llvm.urem %32, %10  : i32
+    %35 = llvm.urem %33, %6  : i32
+    %36 = llvm.mul %34, %12  : i32
+    %37 = llvm.add %35, %36  : i32
+    %38 = llvm.mul %37, %7  : i32
+    %39 = llvm.add %38, %8  : i32
+    %40 = llvm.add %38, %11  : i32
+    %41 = llvm.add %38, %10  : i32
+    %42 = llvm.add %38, %5  : i32
+    %43 = llvm.mlir.addressof @global_smem : !llvm.ptr<array<0 x i8>, 3>
+    %44 = llvm.bitcast %43 : !llvm.ptr<array<0 x i8>, 3> to !llvm.ptr<i8, 3>
+    %45 = llvm.mlir.undef : !llvm.struct<(f32, f32, f32, f32)>
+    %46 = llvm.insertvalue %4, %45[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %47 = llvm.insertvalue %4, %46[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %48 = llvm.insertvalue %4, %47[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %49 = llvm.insertvalue %4, %48[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %50 = nvvm.read.ptx.sreg.ctaid.x : i32
+    %51 = llvm.mul %50, %10  : i32
+    %52 = llvm.add %23, %1  : i32
+    %53 = llvm.add %31, %1  : i32
+    %54 = llvm.add %51, %52  : i32
+    %55 = llvm.add %51, %53  : i32
+    %56 = llvm.icmp "slt" %54, %7 : i32
+    %57 = llvm.icmp "slt" %55, %7 : i32
+    %58 = llvm.add %39, %1  : i32
+    %59 = llvm.add %40, %1  : i32
+    %60 = llvm.add %41, %1  : i32
+    %61 = llvm.add %42, %1  : i32
+    %62 = llvm.mul %55, %3  : i32
+    llvm.br ^bb1(%8, %49 : i32, !llvm.struct<(f32, f32, f32, f32)>)
+  ^bb1(%63: i32, %64: !llvm.struct<(f32, f32, f32, f32)>):  // 2 preds: ^bb0, ^bb2
+    %65 = llvm.icmp "slt" %63, %3 : i32
+    llvm.cond_br %65, ^bb2, ^bb3
+  ^bb2:  // pred: ^bb1
+    %66 = llvm.add %63, %58  : i32
+    %67 = llvm.add %63, %59  : i32
+    %68 = llvm.add %63, %60  : i32
+    %69 = llvm.add %63, %61  : i32
+    %70 = llvm.icmp "slt" %66, %3 : i32
+    %71 = llvm.icmp "slt" %67, %3 : i32
+    %72 = llvm.icmp "slt" %68, %3 : i32
+    %73 = llvm.icmp "slt" %69, %3 : i32
+    %74 = llvm.add %66, %62  : i32
+    %75 = llvm.getelementptr %arg0[%74] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %76 = llvm.and %70, %57  : i1
+    %77 = llvm.and %71, %57  : i1
+    %78 = llvm.and %72, %57  : i1
+    %79 = llvm.and %73, %57  : i1
+    %80 = llvm.mlir.undef : vector<1xf32>
+    %81 = llvm.insertelement %4, %80[%1 : i32] : vector<1xf32>
+    %82 = llvm.bitcast %81 : vector<1xf32> to i32
+    %83 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "mov.u32 $0, 0x0;\0A\09mov.u32 $1, 0x0;\0A\09mov.u32 $2, 0x0;\0A\09mov.u32 $3, 0x0;\0A\09@$5 ld.global.v4.b32 { $0, $1, $2, $3 }, [ $4 + 0 ];\0A\09@!$7 mov.u32 $0, $6;\0A\09@!$9 mov.u32 $1, $8;\0A\09@!$11 mov.u32 $2, $10;\0A\09@!$13 mov.u32 $3, $12;", "=r,=r,=r,=r,l,b,r,b,r,b,r,b,r,b" %75, %76, %82, %76, %82, %76, %82, %76, %82, %76 : (!llvm.ptr<f32, 1>, i1, i32, i1, i32, i1, i32, i1, i32, i1) -> !llvm.struct<(i32, i32, i32, i32)>
+    %84 = llvm.extractvalue %83[0] : !llvm.struct<(i32, i32, i32, i32)> 
+    %85 = llvm.bitcast %84 : i32 to vector<1xf32>
+    %86 = llvm.extractvalue %83[1] : !llvm.struct<(i32, i32, i32, i32)> 
+    %87 = llvm.bitcast %86 : i32 to vector<1xf32>
+    %88 = llvm.extractvalue %83[2] : !llvm.struct<(i32, i32, i32, i32)> 
+    %89 = llvm.bitcast %88 : i32 to vector<1xf32>
+    %90 = llvm.extractvalue %83[3] : !llvm.struct<(i32, i32, i32, i32)> 
+    %91 = llvm.bitcast %90 : i32 to vector<1xf32>
+    %92 = llvm.extractelement %85[%1 : i32] : vector<1xf32>
+    %93 = llvm.extractelement %87[%1 : i32] : vector<1xf32>
+    %94 = llvm.extractelement %89[%1 : i32] : vector<1xf32>
+    %95 = llvm.extractelement %91[%1 : i32] : vector<1xf32>
+    %96 = llvm.extractvalue %64[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %97 = llvm.extractvalue %64[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %98 = llvm.extractvalue %64[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %99 = llvm.extractvalue %64[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %100 = llvm.fadd %96, %92  : f32
+    %101 = llvm.fadd %97, %93  : f32
+    %102 = llvm.fadd %98, %94  : f32
+    %103 = llvm.fadd %99, %95  : f32
+    %104 = llvm.select %76, %100, %96 : i1, f32
+    %105 = llvm.select %77, %101, %97 : i1, f32
+    %106 = llvm.select %78, %102, %98 : i1, f32
+    %107 = llvm.select %79, %103, %99 : i1, f32
+    %108 = llvm.insertvalue %104, %45[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %109 = llvm.insertvalue %105, %108[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %110 = llvm.insertvalue %106, %109[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %111 = llvm.insertvalue %107, %110[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %112 = llvm.add %63, %2  : i32
+    llvm.br ^bb1(%112, %111 : i32, !llvm.struct<(f32, f32, f32, f32)>)
+  ^bb3:  // pred: ^bb1
+    %113 = llvm.bitcast %44 : !llvm.ptr<i8, 3> to !llvm.ptr<f32, 3>
+    %114 = llvm.extractvalue %64[0] : !llvm.struct<(f32, f32, f32, f32)> 
+    %115 = llvm.extractvalue %64[1] : !llvm.struct<(f32, f32, f32, f32)> 
+    %116 = llvm.extractvalue %64[2] : !llvm.struct<(f32, f32, f32, f32)> 
+    %117 = llvm.extractvalue %64[3] : !llvm.struct<(f32, f32, f32, f32)> 
+    %118 = llvm.fadd %114, %115  : f32
+    %119 = llvm.fadd %118, %116  : f32
+    %120 = llvm.fadd %119, %117  : f32
+    %121 = llvm.icmp "eq" %33, %8 : i32
+    %122 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x10, 0x1f, 0xffffffff;", "=r,r" %120 : (f32) -> f32
+    %123 = llvm.fadd %120, %122  : f32
+    %124 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x8, 0x1f, 0xffffffff;", "=r,r" %123 : (f32) -> f32
+    %125 = llvm.fadd %123, %124  : f32
+    %126 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x4, 0x1f, 0xffffffff;", "=r,r" %125 : (f32) -> f32
+    %127 = llvm.fadd %125, %126  : f32
+    %128 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x2, 0x1f, 0xffffffff;", "=r,r" %127 : (f32) -> f32
+    %129 = llvm.fadd %127, %128  : f32
+    %130 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x1, 0x1f, 0xffffffff;", "=r,r" %129 : (f32) -> f32
+    %131 = llvm.fadd %129, %130  : f32
+    %132 = llvm.mul %31, %10  : i32
+    %133 = llvm.add %132, %32  : i32
+    %134 = llvm.getelementptr %113[%133] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %135 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "@$2 st.shared.b32 [ $0 + 0 ], $1;", "r,r,b" %134, %131, %121 : (!llvm.ptr<f32, 3>, f32, i1) -> !llvm.void
+    nvvm.barrier0
+    %136 = llvm.getelementptr %113[%13] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %137 = llvm.load %136 : !llvm.ptr<f32, 3>
+    %138 = llvm.inline_asm asm_dialect = att operand_attrs = [] "shfl.sync.bfly.b32 $0, $1, 0x1, 0x1f, 0xffffffff;", "=r,r" %137 : (f32) -> f32
+    %139 = llvm.fadd %137, %138  : f32
+    %140 = llvm.icmp "slt" %13, %7 : i32
+    %141 = llvm.icmp "eq" %17, %8 : i32
+    %142 = llvm.and %140, %141  : i1
+    %143 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "@$2 st.shared.b32 [ $0 + 0 ], $1;", "r,r,b" %136, %139, %142 : (!llvm.ptr<f32, 3>, f32, i1) -> !llvm.void
+    nvvm.barrier0
+    %144 = llvm.add %132, %8  : i32
+    %145 = llvm.getelementptr %113[%144] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %146 = llvm.load %145 : !llvm.ptr<f32, 3>
+    nvvm.barrier0
+    %147 = llvm.getelementptr %113[%31] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %148 = llvm.bitcast %147 : !llvm.ptr<f32, 3> to !llvm.ptr<vector<1xf32>, 3>
+    %149 = llvm.mlir.undef : vector<1xf32>
+    %150 = llvm.insertelement %146, %149[%8 : i32] : vector<1xf32>
+    llvm.store %150, %148 : !llvm.ptr<vector<1xf32>, 3>
+    nvvm.barrier0
+    %151 = llvm.getelementptr %113[%23] : (!llvm.ptr<f32, 3>, i32) -> !llvm.ptr<f32, 3>
+    %152 = llvm.bitcast %151 : !llvm.ptr<f32, 3> to !llvm.ptr<vector<1xf32>, 3>
+    %153 = llvm.load %152 : !llvm.ptr<vector<1xf32>, 3>
+    %154 = llvm.extractelement %153[%8 : i32] : vector<1xf32>
+    %155 = llvm.getelementptr %arg1[%54] : (!llvm.ptr<f32, 1>, i32) -> !llvm.ptr<f32, 1>
+    %156 = llvm.udiv %15, %11  : i32
+    %157 = llvm.udiv %14, %10  : i32
+    %158 = llvm.mul %156, %9  : i32
+    %159 = llvm.add %158, %157  : i32
+    %160 = llvm.mul %159, %11  : i32
+    %161 = llvm.icmp "slt" %160, %11 : i32
+    %162 = llvm.and %0, %161  : i1
+    %163 = llvm.insertelement %154, %149[%8 : i32] : vector<1xf32>
+    %164 = llvm.bitcast %163 : vector<1xf32> to i32
+    %165 = llvm.and %162, %56  : i1
+    %166 = llvm.inline_asm has_side_effects asm_dialect = att operand_attrs = [] "@$2 st.global.b32 [ $1 + 0 ], { $0 };", "r,l,b" %164, %155, %165 : (i32, !llvm.ptr<f32, 1>, i1) -> !llvm.void
+    llvm.return
+  }
+}
+
+
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.180s
+
+OK
+expected sum 4067.521484375
+actual sum 4067.521484375

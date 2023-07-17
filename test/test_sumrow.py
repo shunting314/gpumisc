@@ -1,6 +1,6 @@
 import unittest
 import triton.language as tl
-from triton_runner.runner import run_py_kernel, run_ttir_kernel
+from triton_runner.runner import run_py_kernel, run_ttir_kernel, run_ttgir_kernel, run_llir_kernel
 from collections import namedtuple
 import torch
 import triton
@@ -73,6 +73,45 @@ class TestRunner(unittest.TestCase):
                 print(f"actual sum {y.sum()}"),
                 self.assertTrue(torch.allclose(y, x.sum(dim=-1))),
             ),
+        )
+
+    def test_ttgir_sumrow(self):
+        run_ttgir_kernel(
+            ttgir_path=f"{path.dirname(__file__)}/../triton_runner/sumrow.ttgir",
+            kernel_name="sumrow_kernel_0d1d23d",
+            signature={0: "*fp32", 1: "*fp32", 2: "i32", 3: "i32"},
+            grid_x=triton.cdiv(NUMROW, X_BLOCK_SIZE),
+            args=lambda: (
+                torch.rand(NUMROW, NUMCOL, device="cuda"),
+                torch.empty(NUMROW, device="cuda"),
+                NUMROW,
+                NUMCOL,
+            ),
+            verifier=lambda x, y, xnumel, rnumel: (
+                print(f"expected sum {x.sum(dim=-1).sum()}"),
+                print(f"actual sum {y.sum()}"),
+                self.assertTrue(torch.allclose(y, x.sum(dim=-1))),
+            ),
+        )
+
+    def test_llir_sumrow(self):
+        run_llir_kernel(
+            llir=f"{path.dirname(__file__)}/../triton_runner/sumrow.llir",
+            kernel_name="sumrow_kernel_0d1d23d",
+            signature={0: "*fp32", 1: "*fp32", 2: "i32", 3: "i32"},
+            grid_x=triton.cdiv(NUMROW, X_BLOCK_SIZE),
+            args=lambda: (
+                torch.rand(NUMROW, NUMCOL, device="cuda"),
+                torch.empty(NUMROW, device="cuda"),
+                NUMROW,
+                NUMCOL,
+            ),
+            verifier=lambda x, y, xnumel, rnumel: (
+                print(f"expected sum {x.sum(dim=-1).sum()}"),
+                print(f"actual sum {y.sum()}"),
+                self.assertTrue(torch.allclose(y, x.sum(dim=-1))),
+            ),
+            shared=512,
         )
 
 

@@ -4,9 +4,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <chrono>
+
+#ifndef USE_CUBLAS
+#define USE_CUBLAS 0
+#endif
+
+#if USE_CUBLAS
 #include <cublas_v2.h>
+#endif
+
+using std::chrono::high_resolution_clock;
+using std::chrono::duration_cast;
+using std::chrono::microseconds;
 
 void matmul_cpu(float* A, float *B, float *C, int N) {
+  auto start = high_resolution_clock::now();
   for (int i = 0; i < N; ++i) {
     for (int j = 0; j < N; ++j) {
       float acc = 0.0f;
@@ -16,12 +29,19 @@ void matmul_cpu(float* A, float *B, float *C, int N) {
       C[i * N + j] = acc;
     }
   }
+  auto end = high_resolution_clock::now();
+  auto elapse_us = duration_cast<microseconds>(end - start);
+  printf("CPU kernel takes %d usec\n", elapse_us.count());
 }
 
 #define THREAD_PER_ELEM 0
 #define THREAD_PER_ROW 1
 #define THREAD_PER_COL 2
-#define CHOICE THREAD_PER_COL
+#define CHOICE_TILING 3
+// #define CHOICE CHOICE_TILING
+#ifndef CHOICE
+#define CHOICE THREAD_PER_ELEM
+#endif
 
 __global__ void matmul_cuda_kernel(float* A, float* B, float* C, int N) {
   int colIdx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -34,6 +54,37 @@ __global__ void matmul_cuda_kernel(float* A, float* B, float* C, int N) {
     }
     C[rowIdx * N + colIdx] = acc;
   }
+}
+
+__global__ void matmul_cuda_kernel_tiling(float* A, float *B, float* C, int N) {
+  #define tile_size 16
+  __shared__ float Atile[tile_size][tile_size];
+  __shared__ float Btile[tile_size][tile_size];
+
+  int row = blockIdx.y * blockDim.y + threadIdx.y;
+  int col = blockIdx.x * blockDim.x + threadIdx.x;
+  float acc = 0.0f;
+  for (int off = 0; off < N; off += tile_size) {
+    // setup the tile
+    // Atile[threadIdx.y][threadIdx.x] correspond to A[threadIdx.y + blockIdx.y * tile_size][threadIdx.x + off]
+    // Btile[threadIdx.y][threadIdx.x] correspond to B[threadIdx.y + off][threadIdx.x + blockIdx.x * tile_size]
+    #if 0
+    Atile[threadIdx.y][threadIdx.x] = A[(threadIdx.y + blockIdx.y * tile_size) * N + threadIdx.x + off];
+    Btile[threadIdx.y][threadIdx.x] = B[(threadIdx.y + off) * N + threadIdx.x + blockIdx.x * tile_size];
+    #else
+    Atile[threadIdx.y][threadIdx.x] = A[row * N + off + threadIdx.x];
+    Btile[threadIdx.y][threadIdx.x] = B[(off + threadIdx.y) * N + col];
+    #endif
+    
+    // do the computation on the tile
+    __syncthreads();
+    for (int k = 0; k < tile_size; ++k) {
+      acc += Atile[threadIdx.y][k] * Btile[k][threadIdx.x];
+    }
+    __syncthreads();
+  }
+  // write acc
+  C[row * N + col] = acc;
 }
 
 __global__ void matmul_cuda_kernel_per_row(float* A, float* B, float* C, int N) {
@@ -71,23 +122,40 @@ void matmul_cuda(float *h_A, float* h_B, float *h_C, int N) {
   cudaMemcpy(d_A, h_A, nbytes, cudaMemcpyHostToDevice);
   cudaMemcpy(d_B, h_B, nbytes, cudaMemcpyHostToDevice);
 
-  #if CHOICE == THREAD_PER_ELEM
-  int blksize = 16;
-  int nblk = (N + blksize - 1) / blksize;
-  matmul_cuda_kernel<<<dim3(nblk, nblk), dim3(blksize, blksize)>>>(d_A, d_B, d_C, N);
-  #endif
+  cudaDeviceSynchronize();
+  auto start = high_resolution_clock::now();
+  int niter = 100;
 
-  #if CHOICE == THREAD_PER_ROW
-  int blksize = 64;
-  int nblk = (N + blksize - 1) / blksize;
-  matmul_cuda_kernel_per_row<<<nblk, blksize>>>(d_A, d_B, d_C, N);
-  #endif
+  for (int i = 0; i < niter; ++i) {
+    #if CHOICE == THREAD_PER_ELEM
+    int blksize = 16;
+    int nblk = (N + blksize - 1) / blksize;
+    matmul_cuda_kernel<<<dim3(nblk, nblk), dim3(blksize, blksize)>>>(d_A, d_B, d_C, N);
+    #endif
+  
+    #if CHOICE == CHOICE_TILING
+    int blksize = 16;
+    int nblk = (N + blksize - 1) / blksize;
+    matmul_cuda_kernel_tiling<<<dim3(nblk, nblk), dim3(blksize, blksize)>>>(d_A, d_B, d_C, N);
+    #endif
+  
+    #if CHOICE == THREAD_PER_ROW
+    int blksize = 64;
+    int nblk = (N + blksize - 1) / blksize;
+    matmul_cuda_kernel_per_row<<<nblk, blksize>>>(d_A, d_B, d_C, N);
+    #endif
+  
+    #if CHOICE == THREAD_PER_COL
+    int blksize = 64;
+    int nblk = (N + blksize - 1) / blksize;
+    matmul_cuda_kernel_per_col<<<nblk, blksize>>>(d_A, d_B, d_C, N);
+    #endif
+  }
 
-  #if CHOICE == THREAD_PER_COL
-  int blksize = 64;
-  int nblk = (N + blksize - 1) / blksize;
-  matmul_cuda_kernel_per_col<<<nblk, blksize>>>(d_A, d_B, d_C, N);
-  #endif
+  cudaDeviceSynchronize();
+  auto end = high_resolution_clock::now();
+  auto elapse_us = duration_cast<microseconds>(end - start);
+  printf("The CUDA kernel took %d usec\n", elapse_us / niter); 
 
   cudaMemcpy(h_C, d_C, nbytes, cudaMemcpyDeviceToHost);
   cudaFree(d_A);
@@ -105,6 +173,7 @@ void transpose(float* mat, int N) {
   }
 }
 
+#if USE_CUBLAS
 void matmul_cublas(float* h_A, float* h_B, float* h_C, int N) {
   cublasHandle_t handle;
   cublasCreate(&handle);
@@ -128,6 +197,7 @@ void matmul_cublas(float* h_A, float* h_B, float* h_C, int N) {
   cudaFree(d_C);
   cublasDestroy(handle);
 }
+#endif
 
 int calc_nfail(float* ref, float* act, int S) {
   int nfail = 0;
@@ -170,7 +240,9 @@ int main(void) {
 
   matmul_cpu(h_A, h_B, h_C_cpuref, SIZE);
   matmul_cuda(h_A, h_B, h_C_cuda, SIZE);
+  #if USE_CUBLAS
   matmul_cublas(h_A, h_B, h_C_cublas, SIZE);
+  #endif
 
   if (SIZE < 10) {
     printMat("A:", h_A, SIZE);
@@ -186,11 +258,13 @@ int main(void) {
     return -1;
   }
 
+  #if USE_CUBLAS
   nfail = calc_nfail(h_C_cpuref, h_C_cublas, SIZE * SIZE);
   if (nfail > 0) {
     fprintf(stderr, "cublass implementation does not match with cpu. %d mismatch\n", nfail);
     return -1;
   }
+  #endif
 
   free(h_A);
   free(h_B);

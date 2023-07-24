@@ -19,6 +19,8 @@ void showDeviceProperties(int devid) {
   printf("  regsPerBlock %d\n", prop.regsPerBlock);
   printf("  regsPerMultiprocessor %d\n", prop.regsPerMultiprocessor);
   printf("  warpSize %d\n", prop.warpSize);
+  printf("  sharedMemPerBlock %d\n", prop.sharedMemPerBlock);
+  printf("  sharedMemPerMultiprocessor %d\n", prop.sharedMemPerMultiprocessor);
 }
 
 int main(void) {

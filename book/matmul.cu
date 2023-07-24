@@ -37,10 +37,10 @@ void matmul_cpu(float* A, float *B, float *C, int N) {
 #define THREAD_PER_ELEM 0
 #define THREAD_PER_ROW 1
 #define THREAD_PER_COL 2
-#define CHOICE_TILING 3
-// #define CHOICE CHOICE_TILING
+#define CHOICE_TILING_STATIC_SM 3
+#define CHOICE_TILING_DYN_SM 4
 #ifndef CHOICE
-#define CHOICE THREAD_PER_ELEM
+#define CHOICE CHOICE_TILING_DYN_SM
 #endif
 
 __global__ void matmul_cuda_kernel(float* A, float* B, float* C, int N) {
@@ -56,7 +56,8 @@ __global__ void matmul_cuda_kernel(float* A, float* B, float* C, int N) {
   }
 }
 
-__global__ void matmul_cuda_kernel_tiling(float* A, float *B, float* C, int N) {
+#if CHOICE == CHOICE_TILING_STATIC_SM
+__global__ void matmul_cuda_kernel_tiling_static_sm(float* A, float *B, float* C, int N) {
   #define tile_size 16
   __shared__ float Atile[tile_size][tile_size];
   __shared__ float Btile[tile_size][tile_size];
@@ -72,8 +73,16 @@ __global__ void matmul_cuda_kernel_tiling(float* A, float *B, float* C, int N) {
     Atile[threadIdx.y][threadIdx.x] = A[(threadIdx.y + blockIdx.y * tile_size) * N + threadIdx.x + off];
     Btile[threadIdx.y][threadIdx.x] = B[(threadIdx.y + off) * N + threadIdx.x + blockIdx.x * tile_size];
     #else
-    Atile[threadIdx.y][threadIdx.x] = A[row * N + off + threadIdx.x];
-    Btile[threadIdx.y][threadIdx.x] = B[(off + threadIdx.y) * N + col];
+    if (row < N && off + threadIdx.x < N) {
+      Atile[threadIdx.y][threadIdx.x] = A[row * N + off + threadIdx.x];
+    } else {
+      Atile[threadIdx.y][threadIdx.x] = 0.0f;
+    }
+    if (off + threadIdx.y < N && col < N) {
+      Btile[threadIdx.y][threadIdx.x] = B[(off + threadIdx.y) * N + col];
+    } else {
+      Btile[threadIdx.y][threadIdx.x] = 0.0f;
+    }
     #endif
     
     // do the computation on the tile
@@ -84,7 +93,59 @@ __global__ void matmul_cuda_kernel_tiling(float* A, float *B, float* C, int N) {
     __syncthreads();
   }
   // write acc
-  C[row * N + col] = acc;
+  if (row < N && col < N) {
+    C[row * N + col] = acc;
+  }
+}
+#endif
+
+__global__ void matmul_cuda_kernel_tiling_dyn_sm(float* A, float *B, float* C, int N) {
+  #if 0
+  // why this line slow downs from 84us to 107us?
+  // I don't see register usage increase from ncu report..
+  int tile_size = blockDim.x;
+  #else
+  #define tile_size 16
+  #endif
+  extern __shared__ char smbuf[];
+  float* Atile = (float*) smbuf;
+  float* Btile = Atile + tile_size * tile_size;
+
+  int row = blockIdx.y * blockDim.y + threadIdx.y;
+  int col = blockIdx.x * blockDim.x + threadIdx.x;
+  float acc = 0.0f;
+  for (int off = 0; off < N; off += tile_size) {
+    // setup the tile
+    // Atile[threadIdx.y][threadIdx.x] correspond to A[threadIdx.y + blockIdx.y * tile_size][threadIdx.x + off]
+    // Btile[threadIdx.y][threadIdx.x] correspond to B[threadIdx.y + off][threadIdx.x + blockIdx.x * tile_size]
+    #if 0
+    Atile[threadIdx.y][threadIdx.x] = A[(threadIdx.y + blockIdx.y * tile_size) * N + threadIdx.x + off];
+    Btile[threadIdx.y][threadIdx.x] = B[(threadIdx.y + off) * N + threadIdx.x + blockIdx.x * tile_size];
+    #else
+    if (row < N && off + threadIdx.x < N) {
+      // Atile[threadIdx.y][threadIdx.x] = A[row * N + off + threadIdx.x];
+      Atile[threadIdx.y * tile_size + threadIdx.x] = A[row * N + off + threadIdx.x];
+    } else {
+      Atile[threadIdx.y * tile_size + threadIdx.x] = 0.0f;
+    }
+    if (off + threadIdx.y < N && col < N) {
+      Btile[threadIdx.y * tile_size + threadIdx.x] = B[(off + threadIdx.y) * N + col];
+    } else {
+      Btile[threadIdx.y * tile_size + threadIdx.x] = 0.0f;
+    }
+    #endif
+    
+    // do the computation on the tile
+    __syncthreads();
+    for (int k = 0; k < tile_size; ++k) {
+      acc += Atile[threadIdx.y * tile_size + k] * Btile[k * tile_size + threadIdx.x];
+    }
+    __syncthreads();
+  }
+  // write acc
+  if (row < N && col < N) {
+    C[row * N + col] = acc;
+  }
 }
 
 __global__ void matmul_cuda_kernel_per_row(float* A, float* B, float* C, int N) {
@@ -132,11 +193,17 @@ void matmul_cuda(float *h_A, float* h_B, float *h_C, int N) {
     int nblk = (N + blksize - 1) / blksize;
     matmul_cuda_kernel<<<dim3(nblk, nblk), dim3(blksize, blksize)>>>(d_A, d_B, d_C, N);
     #endif
-  
-    #if CHOICE == CHOICE_TILING
+
+    #if CHOICE == CHOICE_TILING_STATIC_SM
     int blksize = 16;
     int nblk = (N + blksize - 1) / blksize;
-    matmul_cuda_kernel_tiling<<<dim3(nblk, nblk), dim3(blksize, blksize)>>>(d_A, d_B, d_C, N);
+    matmul_cuda_kernel_tiling_static_sm<<<dim3(nblk, nblk), dim3(blksize, blksize)>>>(d_A, d_B, d_C, N);
+    #endif
+ 
+    #if CHOICE == CHOICE_TILING_DYN_SM
+    int blksize = 16;
+    int nblk = (N + blksize - 1) / blksize;
+    matmul_cuda_kernel_tiling_dyn_sm<<<dim3(nblk, nblk), dim3(blksize, blksize), blksize * blksize * 8>>>(d_A, d_B, d_C, N);
     #endif
   
     #if CHOICE == THREAD_PER_ROW
@@ -223,7 +290,8 @@ void printMat(const char* prompt, float* mat, int N) {
 }
 
 int main(void) {
-  const int SIZE = 512;
+  const int SIZE = 511;
+  // const int SIZE = 512;
   // const int SIZE = 4;
   float* h_A = (float*) malloc(SIZE * SIZE * sizeof(float));
   float* h_B = (float*) malloc(SIZE * SIZE * sizeof(float));

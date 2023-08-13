@@ -1,5 +1,10 @@
 /*
  * Need add -lcublas to nvcc command.
+ *
+ * Summary of perf for SIZE = 512
+ * - CHOICE_TILING_DYN_SM 83 usec
+ * - CHOICE_TILING_DYN_SM_THREAD_COARSENING 100 usec
+ *     I guess it's slower than w/o thread coarsening because the workload is too small.
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -39,8 +44,9 @@ void matmul_cpu(float* A, float *B, float *C, int N) {
 #define THREAD_PER_COL 2
 #define CHOICE_TILING_STATIC_SM 3
 #define CHOICE_TILING_DYN_SM 4
+#define CHOICE_TILING_DYN_SM_THREAD_COARSENING 5
 #ifndef CHOICE
-#define CHOICE CHOICE_TILING_DYN_SM
+#define CHOICE CHOICE_TILING_DYN_SM_THREAD_COARSENING
 #endif
 
 __global__ void matmul_cuda_kernel(float* A, float* B, float* C, int N) {
@@ -148,6 +154,59 @@ __global__ void matmul_cuda_kernel_tiling_dyn_sm(float* A, float *B, float* C, i
   }
 }
 
+#define COARSE_FACTOR 4
+__global__ void matmul_cuda_kernel_tiling_dyn_sm_thread_coarsening(float* A, float *B, float* C, int N) {
+  #if 0
+  // why this line slow downs from 84us to 107us?
+  // I don't see register usage increase from ncu report..
+  int tile_size = blockDim.x;
+  #else
+  #define tile_size 16
+  #endif
+  extern __shared__ char smbuf[];
+  float* Atile = (float*) smbuf;
+  float* Btile = Atile + tile_size * tile_size;
+
+  int row = blockIdx.y * blockDim.y + threadIdx.y;
+  int colStart = blockIdx.x * blockDim.x * COARSE_FACTOR + threadIdx.x;
+  float acc[COARSE_FACTOR];
+  for (int i = 0; i < COARSE_FACTOR; ++i) {
+    acc[i] = 0.0f;
+  }
+  for (int off = 0; off < N; off += tile_size) {
+    // load Atile
+    if (row < N && off + threadIdx.x < N) {
+      // Atile[threadIdx.y][threadIdx.x] = A[row * N + off + threadIdx.x];
+      Atile[threadIdx.y * tile_size + threadIdx.x] = A[row * N + off + threadIdx.x];
+    } else {
+      Atile[threadIdx.y * tile_size + threadIdx.x] = 0.0f;
+    }
+
+    for (int i = 0; i < COARSE_FACTOR; ++i) {
+      int col = colStart + i * tile_size; 
+      if (off + threadIdx.y < N && col < N) {
+        Btile[threadIdx.y * tile_size + threadIdx.x] = B[(off + threadIdx.y) * N + col];
+      } else {
+        Btile[threadIdx.y * tile_size + threadIdx.x] = 0.0f;
+      }
+      
+      // do the computation on the tile
+      __syncthreads();
+      for (int k = 0; k < tile_size; ++k) {
+        acc[i] += Atile[threadIdx.y * tile_size + k] * Btile[k * tile_size + threadIdx.x];
+      }
+      __syncthreads();
+    }
+  }
+  // write acc
+  for (int i = 0; i < COARSE_FACTOR; ++i) {
+    int col = colStart + i * tile_size; 
+    if (row < N && col < N) {
+      C[row * N + col] = acc[i];
+    }
+  }
+}
+
 __global__ void matmul_cuda_kernel_per_row(float* A, float* B, float* C, int N) {
   int rowIdx = blockIdx.x * blockDim.x + threadIdx.x;
   if (rowIdx < N) {
@@ -204,6 +263,13 @@ void matmul_cuda(float *h_A, float* h_B, float *h_C, int N) {
     int blksize = 16;
     int nblk = (N + blksize - 1) / blksize;
     matmul_cuda_kernel_tiling_dyn_sm<<<dim3(nblk, nblk), dim3(blksize, blksize), blksize * blksize * 8>>>(d_A, d_B, d_C, N);
+    #endif
+
+    #if CHOICE == CHOICE_TILING_DYN_SM_THREAD_COARSENING
+    int blksize = 16;
+    int nblk = (N + blksize - 1) / blksize;
+    assert(nblk % COARSE_FACTOR == 0);
+    matmul_cuda_kernel_tiling_dyn_sm_thread_coarsening<<<dim3(nblk / COARSE_FACTOR, nblk), dim3(blksize, blksize), blksize * blksize * 8>>>(d_A, d_B, d_C, N);
     #endif
   
     #if CHOICE == THREAD_PER_ROW
@@ -290,7 +356,7 @@ void printMat(const char* prompt, float* mat, int N) {
 }
 
 int main(void) {
-  const int SIZE = 511;
+  const int SIZE = 512;
   // const int SIZE = 512;
   // const int SIZE = 4;
   float* h_A = (float*) malloc(SIZE * SIZE * sizeof(float));

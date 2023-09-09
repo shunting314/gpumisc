@@ -1,0 +1,13 @@
+Table {
+  Label: "Kernel Information"
+  Columns: 1
+  Order: ColumnMajor
+  Metrics {
+    Label: "Grid Size"
+    Name: "launch__grid_size"
+  }
+  Metrics {
+    Label: "Block Size"
+    Name: "launch__block_size"
+  }
+}

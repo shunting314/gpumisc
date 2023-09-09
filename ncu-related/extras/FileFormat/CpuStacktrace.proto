@@ -1,0 +1,50 @@
+         
+syntax = "proto2";
+package NV.CpuStacktrace;
+enum CpuStacktraceCategory
+{
+    // Every feature counts Category 0 as invalid. Then the array of categories.size() is always >  1.
+    CpuStacktraceCategoryInvalid = 0;
+    CpuStacktraceCategoryCollect = 1;
+    // DO NOT RE-ORDER THESE CATEGORIES
+    // Always add a new category at the end.
+}
+enum CpuStacktraceMethod
+{
+    // Every feature counts Category 0 as invalid. Then the array of categories.size() is always >  1.
+    CpuStacktraceMethodInvalid = 0;
+    CpuStacktraceMethodCollectStackRequestMessage = 1;
+    CpuStacktraceMethodCollectStackReplyMessage = 2;
+    // DO NOT RE-ORDER THESE CATEGORIES
+    // Always add a new category at the end.
+}
+message CpuStacktraceCollectStackRequestMessage
+{
+    message TypeInfo
+    {
+        optional CpuStacktraceCategory Category = 1 [default = CpuStacktraceCategoryCollect];
+        optional CpuStacktraceMethod Method = 2 [default = CpuStacktraceMethodCollectStackRequestMessage];
+    }
+    required uint32 ThreadID = 1;
+}
+message CpuStacktraceStackFrameMessage
+{
+    required string ModuleName = 1;
+    required uint64 PC = 2;
+    optional string FileName = 3;
+    optional string FuncName = 4;
+    optional uint32 Line = 5;
+}
+message CpuStacktraceStackMessage
+{
+    repeated CpuStacktraceStackFrameMessage Frames = 1;
+}
+message CpuStacktraceCollectStackReplyMessage
+{
+    message TypeInfo
+    {
+        optional CpuStacktraceCategory Category = 1 [default = CpuStacktraceCategoryCollect];
+        optional CpuStacktraceMethod Method = 2 [default = CpuStacktraceMethodCollectStackReplyMessage];
+    }
+    required CpuStacktraceStackMessage Stack = 1;
+}

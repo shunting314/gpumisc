@@ -1,0 +1,78 @@
+         
+syntax = "proto2";
+package NV.RuleSystem;
+import "ProfilerSection/ProfilerSection.proto";
+// =============================================================================
+// MESSAGE
+// Simple message that stores a single string
+// =============================================================================
+enum RuleResultMessageType
+{
+    None = 0;
+    Ok = 1;
+    Warning = 2;
+    Error = 3;
+}
+message RuleResultMessage
+{
+    required string Message = 1;
+    required RuleResultMessageType Type = 2;
+    optional int32 Id = 3;
+    optional string Name = 4;
+}
+message RuleResultProposal
+{
+    required string Identifier = 1;
+}
+enum RuleResultFocusSeverity
+{
+    Default = 0;
+    Low = 1;
+    High = 2;
+}
+message RuleResultFocusMetric
+{
+    optional int32 MessageId = 1;
+    optional string MetricName = 2;
+    optional double MetricValue = 3;
+    optional RuleResultFocusSeverity Severity = 4;
+    optional string Info = 5;
+}
+// =============================================================================
+// BODY ITEM
+// A single body item
+// =============================================================================
+message RuleResultBodyItem
+{
+    optional RuleResultMessage Message = 1;
+    optional NV.Profiler.ProfilerSectionTable Table = 2;
+    optional NV.Profiler.ProfilerSectionBarChart BarChart = 3;
+    optional NV.Profiler.ProfilerSectionHistogramChart HistogramChart = 4;
+    optional NV.Profiler.ProfilerSectionLineChart LineChart = 5;
+    optional RuleResultProposal Proposal = 6;
+    optional NV.Profiler.ProfilerSectionRooflineChart RooflineChart = 7;
+    repeated RuleResultFocusMetric FocusMetrics = 8;
+    optional NV.Profiler.ProfilerSourceMetricTable SourceMetricTable = 9;
+}
+// =============================================================================
+// BODY
+// Any number of items that are shows when the results are expanded
+// =============================================================================
+message RuleResultBody
+{
+    repeated RuleResultBodyItem Items = 1;
+}
+// =============================================================================
+// RESULT
+// =============================================================================
+message RuleResult
+{
+    required string Identifier = 1;
+    required string DisplayName = 2;
+    optional RuleResultBody Body = 3;
+    optional string SectionIdentifier = 4;
+}
+message RuleResults
+{
+    repeated RuleResult RuleResults = 1;
+}

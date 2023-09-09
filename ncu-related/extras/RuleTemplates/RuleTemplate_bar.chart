@@ -1,0 +1,14 @@
+BarChart {
+  Label: "Template Rule Bar Chart"
+  CategoryAxis {
+    Label: "Opcodes"
+  }
+  ValueAxis {
+    Label: "Instructions Executed"
+  }
+  Metrics {
+    Label: ""
+    Name: "sass__inst_executed_per_opcode"
+    ShowInstances: 1
+  }
+}

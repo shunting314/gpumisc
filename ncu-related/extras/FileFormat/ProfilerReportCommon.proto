@@ -1,0 +1,70 @@
+         
+syntax = "proto2";
+package NV.Profiler.Messages;
+// enable arenas for better allocation performance
+option cc_enable_arenas = true;
+// Array of 3 for dimensions and work offset. Rather than making a coords, and a separate dimensions message.
+// Please be careful if you need to modify this, as it is used in the report file.
+message Uint64x3
+{
+    optional uint64 X = 1;
+    optional uint64 Y = 2;
+    optional uint64 Z = 3;
+}
+enum APIType
+{
+    APIType_CUDA = 0;
+}
+// Required to be in sync with NvGpuArch's SassLevel
+enum SourceSassLevel
+{
+    SourceSassLevel_Unset = 0;
+    SourceSassLevel_Sass1 = 1;
+    SourceSassLevel_Sass2 = 2;
+    SourceSassLevel_Sass3 = 3;
+    SourceSassLevel_Sass4 = 4;
+    SourceSassLevel_Sass5 = 5;
+    SourceSassLevel_Sass6 = 6;
+    SourceSassLevel_Sass7 = 7;
+    SourceSassLevel_Sass8 = 8;
+    SourceSassLevel_Sass9 = 9;
+}
+message SourceFile
+{
+    required string FileName = 1;
+    optional string Content = 2;
+}
+message SourceFiles
+{
+    repeated SourceFile Files = 1;
+}
+message RelocationSymbolEntry
+{
+    optional string SymbolName = 1;
+    optional uint64 Address = 2;
+    optional uint32 SymbolIndex = 3;
+}
+message RelocationData
+{
+    repeated RelocationSymbolEntry Functions = 1;
+    repeated RelocationSymbolEntry Objects = 2;
+}
+message SourceData
+{
+    optional uint64 Reference = 1;
+    optional string Code = 2;
+    optional bytes Intermediate = 3;
+    optional bytes Binary = 4;
+    optional SourceSassLevel SassLevel = 5;
+    optional uint32 SMRevision = 6;
+    optional uint32 BinaryFlags = 7;
+    optional SourceFiles SourceFiles = 8;
+    optional RelocationData RelocationData = 9;
+}
+message ExecutableSettings
+{
+    required string ExecutablePath = 1;
+    optional string WorkDirectory = 2;
+    optional string CmdlineAgruments = 3;
+    optional string Environment = 4;
+}

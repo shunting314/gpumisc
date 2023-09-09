@@ -1,0 +1,42 @@
+DisplayName: "Kernel Bounds"
+Identifier: "kernel_instance_bounds_analysis"
+Order: 10
+Metrics {
+  Metrics {
+    Label: "Instructions Issued"
+    Name: "smsp__inst_issued_slots"
+  }
+  Metrics {
+    Label: "Instructions Executed LSU"
+    Name: "smsp__inst_executed_lsu_pipe"
+  }
+  Metrics {
+    Label: "Instructions Executed TEX"
+    Name: "smsp__inst_executed_tex_pipe"
+  }
+  Metrics {
+    Label: "Instructions Executed BRU"
+    Name: "smsp__inst_executed_bru_pipe"
+  }
+  Metrics {
+    Label: "Utilization Issue"
+    Name: "smsp__utilization_issue"
+  }
+  Metrics {
+    Label: "smsp__pipe_utilization_tex_pct"
+    Name: "smsp__pipe_utilization_tex_pct"
+  }
+  Metrics {
+    Label: "smsp__pipe_utilization_lsu_pct"
+    Name: "smsp__pipe_utilization_lsu_pct"
+  }
+  Metrics {
+    Label: "smsp__pipe_utilization_bru_pct"
+    Name: "smsp__pipe_utilization_bru_pct"
+  }
+  Metrics {
+    Label: "smsp__pipe_alu_utilization_pct"
+    Name: "smsp__pipe_alu_utilization_pct"
+  }
+}
+

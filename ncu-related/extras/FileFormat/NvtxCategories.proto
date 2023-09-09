@@ -1,0 +1,10 @@
+syntax = "proto2";
+package NV.Nvtx;
+enum NvtxCategory
+{
+    // Every feature counts Category 0 as invalid. Then the array of categories.size() is always >  1.
+    NvtxCategoryInvalid = 0;
+    NvtxCategoryState = 1;
+    // DO NOT RE-ORDER THESE CATEGORIES
+    // Always add a new category at the end.
+}

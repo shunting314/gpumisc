@@ -1,0 +1,486 @@
+         
+syntax = "proto2";
+package NV.Profiler;
+import "Profiler/ProfilerMetricOptions.proto";
+// =============================================================================
+// COMMON
+// =============================================================================
+enum HWUnitType
+{
+    Invalid = 0;
+    Default = 1; // Equals the executing HW unit
+    Gpc = 2;
+    Tpc = 3;
+    Sm = 4;
+    Smsp = 5;
+    Tex = 6;
+    Lts = 7;
+    Ltc = 8;
+    Fbpa = 9;
+}
+enum SortKeys
+{
+    ByLabel = 0;
+    ByValue = 1;
+}
+enum SortDirections
+{
+    Ascending = 0;
+    Descending = 1;
+}
+/*
+ * Possible metric name syntax
+ * (1) "<name>"
+ * (2) "regex:<name regular expression>"
+ * (3) "group:<group name>"
+ * (4) "breakdown:[depth:]<throughput metric name>"
+ */
+message ProfilerSectionMetricOption
+{
+    required string Name = 1;
+    optional string Label = 2;
+    optional Messages.MetricOptionFilter Filter = 3;
+}
+message SourceCorrelationDisplayProperties
+{
+    optional bool Disabled = 1;
+    optional bool DivideByCorrelatedLineCount = 2;
+}
+message SourceViewDisplayProperties
+{
+    // indicates if a metric column should be visible by default on the Source page
+    optional bool DefaultVisible = 1;
+}
+message ProfilerSectionMetricDisplayProperties
+{
+    optional SourceCorrelationDisplayProperties SourceCorrelation = 1;
+    optional SourceViewDisplayProperties SourceView = 2;
+}
+// Notes: Cells are defined empty if either the label string and/or the
+//        metric string is empty. This can be used to arrange the cells in
+//        a table.
+message ProfilerSectionMetric
+{
+    required string Name = 1;
+    optional string Label = 2;
+    optional HWUnitType HWUnit = 3;
+    optional bool ShowInstances = 4;
+    // the metric's base unit (e.g. bytes or bytes_per_sec)
+    optional string Unit = 5;
+    optional Messages.MetricOptionFilter Filter = 6;
+    repeated ProfilerSectionMetricOption Options = 7;
+    optional ProfilerSectionMetricDisplayProperties DisplayProperties = 8;
+    repeated string Groups = 9;
+}
+message ProfilerSectionMetricGroup
+{
+    optional string Name = 1;
+    optional string Label = 2;
+    optional ProfilerSectionMetricDisplayProperties DisplayProperties = 3;
+}
+message ProfilerSectionHighlightX
+{
+    repeated ProfilerSectionMetric Metrics = 1;
+}
+// =============================================================================
+// HORIZONTAL CONTAINER
+// Allows to organize multiple profiler section items in a horizontal container
+// =============================================================================
+message ProfilerSectionHorizontalContainer
+{
+    repeated ProfilerSectionBodyItem Items = 1;
+}
+// =============================================================================
+// TABLE
+// Simple table that stores any number of label/metric pairs
+// =============================================================================
+message ProfilerSectionTable
+{
+    enum LayoutOrder
+    {
+        RowMajor = 0;
+        ColumnMajor = 1;
+    }
+    optional string Label = 1;
+    optional uint32 Rows = 2;
+    required uint32 Columns = 3;
+    optional LayoutOrder Order = 4;
+    // Cells are stored in row-major order
+    repeated ProfilerSectionMetric Metrics = 5;
+    optional SortKeys SortKey = 6;
+    optional SortDirections SortDirection = 7;
+    optional string Description = 8;
+}
+// =============================================================================
+// CHARTS (Common)
+// =============================================================================
+message ChartColor
+{
+    enum ChartColorType
+    {
+        ChartColorTypeUnknown = 0;
+        ChartColorTypeArgb = 1;
+    }
+    required ChartColorType ColorType = 1 [default = ChartColorTypeUnknown];
+    optional uint32 ColorValue = 2;
+}
+message ProfilerSectionChartAxisRange
+{
+    optional int64 Min = 1;
+    optional int64 Max = 2;
+}
+message ProfilerSectionChartValueAxis
+{
+    optional string Label = 1;
+    optional ProfilerSectionChartAxisRange Range = 2;
+    optional int64 TickCount = 3;
+    optional int64 Size = 4;
+    optional uint32 Precision = 5;
+}
+message ProfilerSectionChartCategoryAxis
+{
+    optional string Label = 1;
+}
+message ProfilerSectionChartHistogramAxis
+{
+    optional string Label = 1;
+    optional int64 BinCount = 2;
+}
+message ProfilerSectionChartRooflineAxis
+{
+    optional string Label = 1;
+    optional double Base = 2;
+    optional double Min = 3;
+    optional double Max = 4;
+}
+message ProfilerSectionRooflineValueCyclesPerSecondExpression
+{
+    // Multiple values get summed up.
+    // Peak values typically use the .sum.peak_sustained suffix.
+    // Achieved values typically use the .sum.per_cycle_elapsed suffix.
+    repeated ProfilerSectionMetric ValuePerCycleMetrics = 1;
+    // Multiplication factor to convert cycles to seconds.
+    // Match the collecting unit for the above values as closely as
+    // possible. Typically this resolves to something like
+    // <UNIT>__cycles_elapsed.avg.per_second.
+    optional ProfilerSectionMetric CyclesPerSecondMetric = 2;
+}
+message ProfilerSectionRooflineOptions
+{
+    optional string Label = 1;
+    optional ChartColor Color = 2;
+    optional bool ShowRooflineExtensions = 3;
+    optional bool ShowRooflinePoints = 4;
+}
+message ProfilerSectionRooflineAchievedValueOptions
+{
+    optional string Label = 1;
+    optional ChartColor Color = 2;
+}
+message ProfilerSectionRooflineWallOptions
+{
+    optional string Label = 1;
+    optional ChartColor Color = 2;
+}
+message ProfilerSectionRooflineValue
+{
+    oneof RooflineValue
+    {
+        double Constant = 1;
+        ProfilerSectionMetric Metric = 2;
+        ProfilerSectionRooflineValueCyclesPerSecondExpression ValueCyclesPerSecondExpression = 3;
+    }
+}
+message ProfilerSectionChartRoofline
+{
+    required ProfilerSectionRooflineValue PeakWork = 1;
+    required ProfilerSectionRooflineValue PeakTraffic = 2;
+    optional ProfilerSectionRooflineOptions Options = 3;
+}
+message ProfilerSectionRooflineAchievedValue
+{
+    required ProfilerSectionRooflineValue AchievedWork = 1;
+    required ProfilerSectionRooflineValue AchievedTraffic = 2;
+    optional ProfilerSectionRooflineAchievedValueOptions Options = 3;
+}
+message ProfilerSectionRooflineWall
+{
+    required ProfilerSectionRooflineValue Value = 1;
+    optional ProfilerSectionRooflineWallOptions Options = 2;
+}
+message ProfilerSourceMetricTable
+{
+    optional string Label = 1;
+    optional uint32 Rows = 2;
+    repeated ProfilerSectionMetric Metrics = 3;
+    optional SortDirections SortDirection = 4;
+    optional string Description = 5;
+}
+// =============================================================================
+// CHARTS
+// =============================================================================
+message ProfilerSectionChartOptions
+{
+    optional string AspectRatio = 1;
+}
+message ProfilerSectionBarChart
+{
+    enum Directions
+    {
+        Horizontal = 0;
+        Vertical = 1;
+    }
+    enum ValueAxisAlignments
+    {
+        ValueAxisAlignments_Default = 0;
+        ValueAxisAlignments_Alternate = 1;
+        ValueAxisAlignments_Both = 2;
+    }
+    optional string Label = 1;
+    optional Directions Direction = 2;
+    optional ProfilerSectionChartCategoryAxis CategoryAxis = 3;
+    optional ProfilerSectionChartValueAxis ValueAxis = 4;
+    repeated ProfilerSectionMetric Metrics = 5;
+    optional SortKeys SortKey = 6;
+    optional SortDirections SortDirection = 7;
+    optional ValueAxisAlignments ValueAxisAlignment = 8;
+    optional string Description = 9;
+}
+message ProfilerSectionHistogramChart
+{
+    optional string Label = 1;
+    optional ProfilerSectionChartHistogramAxis HistogramAxis = 2;
+    optional ProfilerSectionChartValueAxis ValueAxis = 3;
+    required ProfilerSectionMetric Metric = 4;
+    optional string Description = 5;
+}
+message ProfilerSectionLineChart
+{
+    optional string Label = 1;
+    optional ProfilerSectionChartValueAxis AxisX = 2;
+    optional ProfilerSectionChartValueAxis AxisY = 3;
+    repeated ProfilerSectionMetric Metrics = 4;
+    optional ProfilerSectionHighlightX HighlightX = 5;
+    optional string Description = 6;
+}
+// Roofline Chart:
+// Shows the relation between Intensity (I) and Work (W). A single chart includes
+// one achieved data point and one or more peak rooflines. The metric input is
+// driven by metrics for Work (W) and Traffic (T) for both, achieved and peak
+// performance. The Intensity (I) is calculated as I = W / T. The axis are
+// defined to use Intensity (I) for the x dimension and Work (W) for the y
+// dimension.
+message ProfilerSectionRooflineChart
+{
+    optional string Label = 1;
+    optional ProfilerSectionChartRooflineAxis AxisIntensity = 2;
+    optional ProfilerSectionChartRooflineAxis AxisWork = 3;
+    repeated ProfilerSectionChartRoofline Rooflines = 4;
+    repeated ProfilerSectionRooflineAchievedValue AchievedValues = 5;
+    repeated ProfilerSectionRooflineWall Walls = 6;
+    optional string Description = 7;
+    optional ProfilerSectionChartOptions Options = 8;
+}
+// =============================================================================
+// CUSTOM TYPES
+// =============================================================================
+message ProfilerSectionMemorySharedTable
+{
+    optional string Label = 1;
+    optional bool ShowLoads = 2;
+    optional bool ShowStores = 3;
+    optional bool ShowAtomics = 4;
+    optional bool ShowTotals = 5;
+}
+message ProfilerSectionMemoryFirstLevelCacheTable
+{
+    optional string Label = 1;
+    optional bool ShowLoads = 2;
+    optional bool ShowStores = 3;
+    optional bool ShowAtomics = 4;
+    optional bool ShowReductions = 5;
+    optional bool ShowGlobal = 6;
+    optional bool ShowLocal = 7;
+    optional bool ShowSurface = 8;
+    optional bool ShowTexture = 9;
+    optional bool ShowTotalLoads = 10;
+    optional bool ShowTotalStores = 11;
+    optional bool ShowTotals = 12;
+}
+message ProfilerSectionMemoryL1TEXCacheTable
+{
+    optional string Label = 1;
+    optional bool ShowLoads = 2;
+    optional bool ShowStores = 3;
+    optional bool ShowAtomics = 4;
+    optional bool ShowReductions = 5;
+    optional bool ShowGlobal = 6;
+    optional bool ShowLocal = 7;
+    optional bool ShowSurface = 8;
+    optional bool ShowTexture = 9;
+    optional bool ShowTotalLoads = 10;
+    optional bool ShowTotalStores = 11;
+    optional bool ShowTotals = 12;
+    optional bool ShowTotalAtomicsAndReductions = 13;
+}
+message ProfilerSectionMemorySecondLevelCacheTable
+{
+    optional string Label = 1;
+    optional bool ShowLoads = 2;
+    optional bool ShowStores = 3;
+    optional bool ShowAtomics = 4;
+    optional bool ShowReductions = 5;
+    optional bool ShowGlobal = 6;
+    optional bool ShowLocal = 7;
+    optional bool ShowSurface = 8;
+    optional bool ShowTexture = 9;
+    optional bool ShowTotalLoads = 10;
+    optional bool ShowTotalStores = 11;
+    optional bool ShowTotals = 12;
+}
+message ProfilerSectionMemoryL2CacheEvictPolicyTable
+{
+    optional string Label = 1;
+    optional bool ShowLoads = 2;
+    optional bool ShowStores = 3;
+    optional bool ShowAtomics = 4;
+}
+message ProfilerSectionMemoryL2CacheTable
+{
+    optional string Label = 1;
+    optional bool ShowLoads = 2;
+    optional bool ShowStores = 3;
+    optional bool ShowAtomics = 4;
+    optional bool ShowReductions = 5;
+}
+message ProfilerSectionMemoryDeviceMemoryTable
+{
+    optional string Label = 1;
+    optional bool ShowLoads = 2;
+    optional bool ShowStores = 3;
+    optional bool ShowTotals = 4;
+}
+message ProfilerSectionMemoryChart
+{
+    optional string Label = 1;
+}
+message ProfilerSectionNvlinkTopology
+{
+    optional string Label = 1;
+}
+message ProfilerSectionNvlinkPropertyTable
+{
+    optional string Label = 1;
+}
+message ProfilerSectionNvlinkThroughputTable
+{
+    optional string Label = 1;
+}
+message ProfilerSectionGfxMetricsWidget
+{
+    required string Type = 1;
+    optional string Label = 2;
+    repeated ProfilerSectionMetric Metrics = 3;
+}
+// =============================================================================
+// HEADER
+// Basically a simple table for now with a fixed number of two columns
+// =============================================================================
+message ProfilerSectionHeader
+{
+    // number of rows shown in the header
+    optional uint32 Rows = 1;
+    // Cells are stored in row-major order
+    repeated ProfilerSectionMetric Metrics = 2;
+}
+// =============================================================================
+// BODY
+// Any number of items that are shows when the section is expanded
+// =============================================================================
+message ProfilerSectionBodyItem
+{
+    // Note: Could switch to a oneof once we switch to a protobuf version that
+    //       supports this.
+    // Basic Item Types
+    optional ProfilerSectionTable Table = 1;
+    optional ProfilerSectionBarChart BarChart = 2;
+    optional ProfilerSectionHistogramChart HistogramChart = 3;
+    optional ProfilerSectionLineChart LineChart = 4;
+    optional ProfilerSectionHorizontalContainer HorizontalContainer = 5;
+    optional ProfilerSectionRooflineChart RooflineChart = 6;
+    optional ProfilerSourceMetricTable SourceMetricTable = 7;
+    // Custom Item Types
+    optional ProfilerSectionMemorySharedTable MemorySharedTable = 101;
+    optional ProfilerSectionMemoryFirstLevelCacheTable MemoryFirstLevelCacheTable = 102;
+    optional ProfilerSectionMemorySecondLevelCacheTable MemorySecondLevelCacheTable = 103;
+    optional ProfilerSectionMemoryDeviceMemoryTable MemoryDeviceMemoryTable = 104;
+    optional ProfilerSectionMemoryChart MemoryChart = 105;
+    optional ProfilerSectionMemoryL1TEXCacheTable MemoryL1TEXCacheTable = 106;
+    optional ProfilerSectionMemoryL2CacheTable MemoryL2CacheTable = 107;
+    optional ProfilerSectionNvlinkTopology NvlinkTopology = 108;
+    optional ProfilerSectionNvlinkPropertyTable NvlinkPropertyTable = 109;
+    optional ProfilerSectionNvlinkThroughputTable NvlinkThroughputTable = 110;
+    optional ProfilerSectionMemoryL2CacheEvictPolicyTable MemoryL2CacheEvictPolicyTable = 111;
+    // Graphics Item Types
+    optional ProfilerSectionGfxMetricsWidget GfxMetricsWidget = 150;
+    optional Messages.MetricOptionFilter Filter = 200;
+}
+message ProfilerSectionBody
+{
+    repeated ProfilerSectionBodyItem Items = 1;
+    optional string DisplayName = 2;
+}
+// =============================================================================
+// METRICS
+// List of further metrics collected by this section
+// (Note that metrics can be referenced by Header and Body, too.)
+// =============================================================================
+message ProfilerSectionMetrics
+{
+    repeated ProfilerSectionMetric Metrics = 1;
+    optional uint32 Order = 2;
+}
+// =============================================================================
+// METRIC DEFINITIONS
+// Metric definitions describe new metrics composed of existing ones
+// =============================================================================
+message ProfilerSectionMetricDefinition
+{
+    required string Name = 1;
+    // expression of the form <metricA> <op> <metricB> where <op> is one of +,-,*,/
+    // and <metricA> and <metricB> are metric names
+    required string Expression = 2;
+}
+message ProfilerSectionMetricDefinitions
+{
+    repeated ProfilerSectionMetricDefinition MetricDefinitions = 1;
+}
+// =============================================================================
+// SECTION SET
+// =============================================================================
+message ProfilerSet
+{
+    required string Identifier = 1;
+}
+// =============================================================================
+// SECTION
+// =============================================================================
+message ProfilerSection
+{
+    required string Identifier = 1;
+    required string DisplayName = 2;
+    optional uint32 Order = 3;
+    optional ProfilerSectionHeader Header = 4;
+    repeated ProfilerSectionBody Body = 5;
+    optional ProfilerSectionMetrics Metrics = 6;
+    optional string Description = 7;
+    repeated ProfilerSet Sets = 8;
+    optional string Extends = 9;
+    optional ProfilerSectionMetricDefinitions MetricDefinitions = 10;
+    optional Messages.MetricOptionFilter Filter = 11;
+    repeated ProfilerSectionMetricGroup Group = 12;
+}
+message ProfilerSections
+{
+    repeated ProfilerSection Sections = 1;
+}

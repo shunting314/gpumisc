@@ -1,0 +1,155 @@
+syntax = "proto2";
+package NV.Nvtx;
+import "Nvtx/NvtxCategories.proto";
+enum NvtxMethod
+{
+    // Every feature counts Method 0 as invalid. The array of categories.size() is always > 1.
+    NvtxMethodInvalid = 0;
+    NvtxMethodRequestStateMessage = 1;
+    NvtxMethodReplyStateMessage = 2;
+    // ONLY ADD AT THE END OF THIS LIST. DO NOT RE-ORDER.
+}
+message NvtxRequestStateMessage
+{
+    message TypeInfo
+    {
+        optional NvtxCategory Category = 1 [default = NvtxCategoryState];
+        optional NvtxMethod Method = 2 [default = NvtxMethodRequestStateMessage];
+    }
+}
+enum NvtxColorType
+{
+    NvtxColorTypeUnknown = 0;
+    NvtxColorTypeArgb = 1;
+}
+enum NvtxPayloadType
+{
+    NvtxPayloadTypeUnknown = 0;
+    NvtxPayloadTypeUint64 = 1;
+    NvtxPayloadTypeInt64 = 2;
+    NvtxPayloadTypeDouble = 3;
+    NvtxPayloadTypeUint32 = 4;
+    NvtxPayloadTypeInt32 = 5;
+    NvtxPayloadTypeFloat = 6;
+    NvtxPayloadTypeJson = 7; // stored in StrValue
+    NvtxPayloadTypeJsonRegistered = 8; // stored in ULLValue
+}
+message NvtxPayload
+{
+    required NvtxPayloadType PayloadType = 1 [default = NvtxPayloadTypeUnknown];
+    optional uint64 ULLValue = 2;
+    optional int64 LLValue = 3;
+    optional double DoubleValue = 4;
+    optional uint32 UValue = 5;
+    optional int32 IValue = 6;
+    optional float FValue = 7;
+    optional string StrValue = 8;
+}
+enum NvtxMessageType
+{
+    NvtxMessageTypeUnknown = 0;
+    NvtxMessageTypeAscii = 1;
+    NvtxMessageTypeUnicode = 2;
+    NvtxMessageTypeRegistered = 3;
+}
+message NvtxMessage
+{
+    required NvtxMessageType MessageType = 1 [default = NvtxMessageTypeUnknown];
+    optional string message = 2;
+    optional uint64 handle = 3;
+}
+message NvtxColor
+{
+    required NvtxColorType ColorType = 1 [default = NvtxColorTypeUnknown];
+    optional uint32 Color = 2;
+}
+message NvtxEventAttributes
+{
+    required uint32 Version = 1;
+    required uint32 Category = 2;
+    required NvtxColor Color = 3;
+    required NvtxPayload Payload = 4;
+    required NvtxMessage Message = 5;
+}
+message NvtxPushPopRange
+{
+    required string Name = 1;
+    optional NvtxEventAttributes Attributes = 2;
+    optional uint64 LastApiCallId = 3;
+}
+message NvtxStartEndRange
+{
+    required uint64 Id = 1;
+    required string Name = 2;
+    optional NvtxEventAttributes Attributes = 3;
+    optional uint64 LastApiCallId = 4;
+    optional uint32 StartTID = 5;
+}
+message NvtxPushPopDomain
+{
+    required uint64 Id = 1;
+    repeated NvtxPushPopRange Stack = 3;
+}
+message NvtxStartEndDomain
+{
+    required uint64 Id = 1;
+    repeated NvtxStartEndRange Ranges = 3;
+}
+message NvtxRegisteredString
+{
+    required uint64 Id = 1;
+    required string Value = 2;
+}
+message NvtxDomainInfo
+{
+    required uint64 Id = 1;
+    required string Name = 2;
+    repeated NvtxRegisteredString Strings = 3;
+    repeated NvtxNameTable NameTables = 4;
+}
+message NvtxThread
+{
+    required uint32 TID = 1;
+    repeated NvtxPushPopDomain PushPopDomains = 2;
+}
+enum NvtxNameFamily
+{
+    NvtxNameFamilyUnknown = 0;
+    NvtxNameFamilyCategory = 1;
+    NvtxNameFamilyOsThread = 2;
+    NvtxNameFamilyCudaDevice = 3;
+    NvtxNameFamilyCudaContext = 4;
+    NvtxNameFamilyCudaStream = 5;
+    NvtxNameFamilyCudaEvent = 6;
+    NvtxNameFamilyClDevice = 7;
+    NvtxNameFamilyClContext = 8;
+    NvtxNameFamilyClCommandQueue = 10;
+    NvtxNameFamilyClMemObject = 11;
+    NvtxNameFamilyClSampler = 12;
+    NvtxNameFamilyClProgram = 13;
+    NvtxNameFamilyClEvent = 14;
+    NvtxNameFamilyCudaRtDevice = 15;
+    NvtxNameFamilyCudaRtStream = 16;
+    NvtxNameFamilyCudaRtEvent = 17;
+}
+message NvtxNameTable
+{
+    required NvtxNameFamily Family = 1;
+    repeated NvtxRegisteredString Mappings = 2;
+}
+message NvtxState
+{
+    repeated NvtxDomainInfo Domains = 1;
+    repeated NvtxThread Threads = 2;
+    repeated NvtxStartEndDomain StartEndDomains = 3;
+    optional uint64 DefaultDomain = 4;
+}
+message NvtxReplyStateMessage
+{
+    message TypeInfo
+    {
+        optional NvtxCategory Category = 1 [default = NvtxCategoryState];
+        optional NvtxMethod Method = 2 [default = NvtxMethodReplyStateMessage];
+    }
+    optional NvtxState State = 1;
+}

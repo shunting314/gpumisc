@@ -1,0 +1,350 @@
+         
+syntax = "proto2";
+package NV.Profiler.Messages;
+import "CpuStacktrace/CpuStacktrace.proto";
+import "Nvtx/Nvtx.proto";
+import "Profiler/ProfilerResultsCommon.proto";
+import "Profiler/ProfilerStringTable.proto";
+import "ProfilerReport/ProfilerReportCommon.proto";
+import "ProfilerSection/ProfilerSection.proto";
+import "RuleSystem/RuleResults.proto";
+// enable arenas for better allocation performance
+option cc_enable_arenas = true;
+message DeviceProperty
+{
+    required string Key = 1;
+    required string Value = 2;
+}
+message DeviceProperties
+{
+    repeated DeviceProperty Properties = 1;
+}
+message DeviceAttribute
+{
+    required string Name = 1;
+    required ProfileMetricValue Value = 2;
+}
+message DeviceAttributes
+{
+    required uint32 ID = 1;
+    optional string Name = 2;
+    repeated DeviceAttribute Attributes = 3;
+}
+// has to match with SystemInfo.proto!
+enum PlatformType
+{
+    Unknown = 0;
+    Windows = 1;
+    Linux = 2;
+    Android = 3;
+    OSX = 4;
+    QNX = 5;
+    Hos = 6;
+    Integrity = 7;
+    LinuxPPC = 8;
+}
+enum IPAddressType
+{
+    IPV4 = 1;
+    IPV6 = 2;
+}
+message IPAddress
+{
+    required string Address = 1;
+    optional IPAddressType Type = 2;
+}
+message SystemInfo
+{
+    optional string OSName = 1;
+    optional string Build = 2;
+    optional string Processor = 3;
+    optional string Architecture = 4;
+    optional string ComputerName = 5;
+    optional PlatformType Platform = 6;
+    repeated IPAddress IPAddresses = 7;
+}
+message VersionInfo
+{
+    required string Provider = 1;
+    required string Version = 2;
+}
+message FilterOptions
+{
+    optional string KernelName = 1;
+    optional string KernelNameBase = 2;
+    optional string KernelId = 3;
+    optional uint32 SkipCount = 4;
+    optional uint32 SkipBeforeMatchCount = 5;
+    optional uint32 CaptureCount = 6;
+}
+message SamplingOptions
+{
+    optional bool IntervalAuto = 1;
+    optional uint64 Interval = 2;
+    optional uint64 MaxPasses = 3;
+    optional uint64 BufferSize = 4;
+}
+message OtherOptions
+{
+    optional bool ApplyRules = 1;
+    optional string Metrics = 2;
+}
+message ProfilerSettings
+{
+    optional bool EnableNvtx = 1;
+    optional bool DisableProfilingStartStop = 2;
+    optional bool EnableProfilingFromStart = 3;
+    optional string ActivityType = 4;
+    optional FilterOptions FilterOptions = 5;
+    optional OtherOptions OtherOptions = 6;
+    optional string EnabledSections = 7;
+    optional string ClockControlMode = 8;
+    optional SamplingOptions SamplingOptions = 9;
+    optional bool ImportSource = 10;
+    optional string ReplayMode = 11;
+    optional bool EnableCpuStack = 12;
+}
+message ReportSessionDetails
+{
+    optional uint32 ProcessID = 1;
+    // Represented as a Unix time since Jan 1 1970
+    optional uint64 CreationTime = 2;
+    optional SystemInfo HostSystemInfo = 3;
+    optional SystemInfo TargetSystemInfo = 4;
+    optional DeviceProperties DeviceProperties = 5;
+    repeated DeviceAttributes DeviceAttributes = 6;
+    // User can modify these to give themselves some hints about the report.
+    optional string Comments = 7;
+    repeated VersionInfo VersionInfo = 8;
+    optional ExecutableSettings ExecutableSettings = 9;
+    optional ProfilerSettings ProfilerSettings = 10;
+    optional string ProfilerCmdline = 11;
+}
+message CommentID
+{
+    required string SectionID = 1;
+    // In the future, this could also include something like:
+    // optional string TableID = 2;
+    // optional uint32 TableRow = 3;
+    // optional uint32 TableCol = 4;
+}
+message Comment
+{
+    required CommentID ID = 1;
+    required string DisplayName = 2;
+    required string Text = 3;
+}
+message ProfileSeriesInfoMessage
+{
+    required uint32 SeriesID = 1;
+    // Is set iff the current result is not the result for the default settings
+    optional string CombinationStr = 2;
+}
+message ProfilerClockStatusMessage
+{
+    required bool RequestedLock = 1;
+    required bool ExecutedLocked = 2;
+}
+// Result representing a single kernel launch.
+message ProfileResult
+{
+    required uint32 ThreadID = 1;
+    required uint64 APICallID = 2;
+    required uint64 ProgramHandle = 3;
+    required uint64 KernelID = 4;
+    required string KernelMangledName = 5;
+    required string KernelFunctionName = 6;
+    required string KernelDemangledName = 7;
+    required uint32 WorkDimensions = 8;
+    // x,y,z descriptions
+    // work offset
+    required Uint64x3 GlobalWorkOffset = 9;
+    // CUDA grid dims
+    required Uint64x3 GridSize = 10;
+    // CUDA block dims
+    required Uint64x3 BlockSize = 11;
+    optional string Comments = 12;
+    repeated ProfileMetricResult MetricResults = 13;
+    // Represented as a Unix time since Jan 1 1970
+    optional uint64 CreationTime = 14;
+    required SourceData Source = 15;
+    // This field is only set to optional in order to be backwards compatible with
+    // older report files. Maybe we can switch that once we rename file name endings.
+    optional APIType Api = 16;
+    // Note: Optional for now; will become required once everything is in place
+    // Hint: Stored here so that any report can be opened with any version of the tool, independent
+    //       of the actual configured template for data collection. I assume this is very common that
+    //       old reports would have different sections than newer reports. Same is true if multiple
+    //       people share their reports.
+    repeated NV.Profiler.ProfilerSection Sections = 17;
+    repeated Comment SectionComments = 18;
+    // Note: Optional for now, similar to Sections
+    repeated NV.RuleSystem.RuleResult RuleResults = 19;
+    // set to true if the target was not (fully) supported
+    optional bool UnsupportedDevice = 20;
+    optional NV.Nvtx.NvtxState Nvtx = 21;
+    // the CUDA context ID of the kernel
+    optional uint32 ContextID = 22;
+    // the CUDA stream ID of the kernel
+    optional uint32 StreamID = 23;
+    optional ProfileSeriesInfoMessage SeriesInfo = 24;
+    optional ProfilerClockStatusMessage ClockStatus = 25;
+    // the CUDA context's NVTX name
+    optional string ContextName = 26;
+    // the CUDA stream's NVTX name
+    optional string StreamName = 27;
+    // the stack frames of the host/cpu code for this CUDA launch
+    optional NV.CpuStacktrace.CpuStacktraceStackMessage CpuStack = 28;
+}
+// Result representing a replayed range including multiple API calls and kernel launches.
+message RangeResult
+{
+    // thread and api call ID of the start marker
+    required uint32 ThreadID = 1;
+    required uint64 APICallID = 2;
+    optional string Comments = 3;
+    repeated ProfileMetricResult MetricResults = 4;
+    // Represented as a Unix time since Jan 1 1970
+    optional uint64 CreationTime = 5;
+    optional APIType Api = 6;
+    repeated NV.Profiler.ProfilerSection Sections = 7;
+    repeated Comment SectionComments = 8;
+    // set to true if the target was not (fully) supported
+    optional bool UnsupportedDevice = 9;
+    optional NV.Nvtx.NvtxState Nvtx = 10;
+    // the CUDA context ID of the kernel
+    optional uint32 ContextID = 11;
+    optional ProfilerClockStatusMessage ClockStatus = 12;
+    // the CUDA context's NVTX name
+    optional string ContextName = 13;
+    // the stack frames of the host/cpu code for this range (start marker)
+    optional NV.CpuStacktrace.CpuStacktraceStackMessage CpuStack = 14;
+    // store source data references. A range can have more than one associated SourceData.
+    repeated uint64 References = 15;
+}
+// Result representing a command list with one or more launched functions.
+message CmdlistResult
+{
+    // thread and api call ID of the start marker
+    required uint32 ThreadID = 1;
+    required uint64 APICallID = 2;
+    optional string Comments = 3;
+    repeated ProfileMetricResult MetricResults = 4;
+    // Represented as a Unix time since Jan 1 1970
+    optional uint64 CreationTime = 5;
+    optional APIType Api = 6;
+    repeated NV.Profiler.ProfilerSection Sections = 7;
+    repeated Comment SectionComments = 8;
+    // set to true if the target was not (fully) supported
+    optional bool UnsupportedDevice = 9;
+    optional NV.Nvtx.NvtxState Nvtx = 10;
+    // the CUDA context ID of the cmdlist
+    optional uint32 ContextID = 11;
+    // the CUDA stream ID of the cmdlist
+    optional uint32 StreamID = 12;
+    optional ProfilerClockStatusMessage ClockStatus = 13;
+    // the CUDA context's NVTX name
+    optional string ContextName = 14;
+    // the CUDA stream's NVTX name
+    optional string StreamName = 15;
+    // the stack frames of the host/cpu code for this cmdlist (start marker)
+    optional NV.CpuStacktrace.CpuStacktraceStackMessage CpuStack = 16;
+    // store source data references. A cmdlist can have more than one associated SourceData.
+    repeated uint64 References = 17;
+    // display name which may contain the original API call name
+    optional string DisplayName = 18;
+}
+// Result representing a CUDA Graph
+message GraphResult
+{
+    // thread and api call ID of the start marker
+    required uint32 ThreadID = 1;
+    required uint64 APICallID = 2;
+    optional string Comments = 3;
+    repeated ProfileMetricResult MetricResults = 4;
+    // Represented as a Unix time since Jan 1 1970
+    optional uint64 CreationTime = 5;
+    optional APIType Api = 6;
+    repeated NV.Profiler.ProfilerSection Sections = 7;
+    repeated Comment SectionComments = 8;
+    // set to true if the target was not (fully) supported
+    optional bool UnsupportedDevice = 9;
+    optional NV.Nvtx.NvtxState Nvtx = 10;
+    // the CUDA context ID of the graph
+    optional uint32 ContextID = 11;
+    // the CUDA stream ID of the graph
+    optional uint32 StreamID = 12;
+    optional ProfilerClockStatusMessage ClockStatus = 13;
+    // the CUDA context's NVTX name
+    optional string ContextName = 14;
+    // the CUDA stream's NVTX name
+    optional string StreamName = 15;
+    // the stack frames of the host/cpu code for this graph (start marker)
+    optional NV.CpuStacktrace.CpuStacktraceStackMessage CpuStack = 16;
+    // store source data references. A graph can have more than one associated SourceData.
+    repeated uint64 References = 17;
+}
+message ProcessInfo
+{
+    required uint32 ProcessID = 1;
+    optional string Hostname = 2;
+    optional string ProcessName = 3;
+}
+message BlockHeader
+{
+    // The data for the following two fields is encoded sequentially after this header.
+    // They are not *in* the header, since a large protobuf would error out. (100000 results or so)
+    // Contains the number of profile sources in this block.
+    // Payload is of type NV.Profiler.SourceData
+    optional uint32 NumSources = 1;
+    // Contains the number of profile results in this block.
+    // Payload is of type NV.Profiler.Messages.ProfileResult
+    optional uint32 NumResults = 2;
+    optional ReportSessionDetails SessionDetails = 3;
+    // The master string table to resolve strings stored as IDs
+    optional ProfilerStringTable StringTable = 4;
+    // Size of the following payload block in bytes
+    optional uint32 PayloadSize = 5;
+    // Process this block is associated with
+    // If not present, the block is considered to be associated
+    // with the default process, identified by ReportSessionDetails
+    optional ProcessInfo Process = 6;
+    // Contains the number of range results in this block.
+    // Payload is of type NV.Profiler.Messages.RangeResult
+    optional uint32 NumRangeResults = 7;
+    // Contains the number of cmdlist results in this block.
+    // Payload is of type NV.Profiler.Messages.CmdlistResult
+    optional uint32 NumCmdlistResults = 8;
+    // Contains the number of CUDA graph results in this block.
+    // Payload is of type NV.Profiler.Messages.GraphResult
+    optional uint32 NumGraphResults = 9;
+}
+message FileHeader
+{
+    required uint32 Version = 1;
+}
+message BaselineColor
+{
+    enum BaselineColorType
+    {
+        BaselineColorTypeUnknown = 0;
+        BaselineColorTypeArgb = 1;
+    }
+    required BaselineColorType ColorType = 1 [default = BaselineColorTypeUnknown];
+    optional uint32 ColorValue = 2;
+}
+message ExtendedBaselineData
+{
+    optional bool IsVisible = 1;
+    optional BaselineColor Color = 2;
+    optional string Name = 3;
+    optional string KernelName = 4;
+    optional string ProcessName = 5;
+    optional string ReportMoniker = 6;
+}
+message BaselinePersistenceData
+{
+    repeated ProfileResult BaselineResults = 1;
+    repeated ProfilerStringTable StringTables = 2;
+    repeated ExtendedBaselineData ExtendedBaselineData = 3;
+}

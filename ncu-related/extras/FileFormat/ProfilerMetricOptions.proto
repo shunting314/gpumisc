@@ -1,0 +1,53 @@
+         
+syntax = "proto2";
+package NV.Profiler.Messages;
+enum GpuArch
+{
+    option allow_alias = true;
+    InvalidArch = 0;
+    MinArch =
+        40;
+    CC_40 = 40;
+    CC_43 = 43;
+    CC_50 = 50;
+    CC_52 = 52;
+    CC_53 = 53;
+    CC_60 = 60;
+    CC_61 = 61;
+    CC_62 = 62;
+    CC_70 = 70;
+    CC_72 = 72;
+    CC_75 = 75;
+    CC_80 = 80;
+    CC_86 = 86;
+    CC_87 = 87;
+    CC_89 = 89;
+    CC_90 = 90;
+    MaxArch =
+        90;
+}
+enum CollectionScope
+{
+    CollectionScope_Launch = 1;
+    CollectionScope_Range = 2;
+}
+message CollectionFilter
+{
+    // if set, scopes for which to enable collection
+    repeated CollectionScope CollectionScopes = 1;
+}
+message MetricOptionFilterItem
+{
+    // if either one is not set, the respective value from GpuArch is taken
+    optional GpuArch MinArch = 1;
+    optional GpuArch MaxArch = 2;
+}
+message MetricOptionFilter
+{
+    // kept for backwards-compatibility
+    optional GpuArch MinArch = 1;
+    optional GpuArch MaxArch = 2;
+    // setting Items overrides MinArch/MaxArch
+    repeated MetricOptionFilterItem Items = 3;
+    optional CollectionFilter CollectionFilter = 4;
+}

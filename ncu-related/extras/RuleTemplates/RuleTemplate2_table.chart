@@ -1,0 +1,12 @@
+Table {
+  Label: "Template Rule Table"
+  Columns: 1
+  Order: ColumnMajor
+  Metrics {
+    Label: "New numeric metric"
+    Name: "new_metric_numeric"
+  }
+  Metrics {
+    Name: "new_metric_string"
+  }
+}

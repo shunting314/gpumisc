@@ -1,0 +1,25 @@
+Identifier: "RuleTemplateSection"
+DisplayName: "Rule Template"
+Order: 20
+Metrics {
+  Metrics {
+    Name: "sass__inst_executed_per_opcode"
+    Filter {
+      CollectionFilter {
+        CollectionScopes: CollectionScope_Launch
+      }
+    }
+  }
+}
+Header {
+  Rows: 1
+  Metrics {
+    Label: "Grid Size"
+    Name: "launch__grid_size"
+  }
+  Metrics {
+    Label: "Block Size"
+    Name: "launch__block_size"
+  }
+}
+

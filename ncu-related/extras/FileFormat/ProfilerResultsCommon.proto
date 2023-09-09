@@ -1,0 +1,24 @@
+         
+syntax = "proto2";
+package NV.Profiler.Messages;
+// enable arenas for better allocation performance
+option cc_enable_arenas = true;
+message ProfileMetricValue
+{
+    optional string StringValue = 1;
+    optional float FloatValue = 2;
+    optional double DoubleValue = 3;
+    optional uint32 Uint32Value = 4;
+    optional uint64 Uint64Value = 5;
+}
+message ProfileMetricListElement
+{
+    optional ProfileMetricValue CorrelationId = 1;
+    required ProfileMetricValue ElementValue = 2;
+}
+message ProfileMetricResult
+{
+    required uint32 NameId = 1;
+    optional ProfileMetricValue MetricValue = 2;
+    repeated ProfileMetricListElement MetricValueList = 3;
+}

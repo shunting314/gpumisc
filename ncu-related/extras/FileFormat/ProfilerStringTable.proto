@@ -1,0 +1,9 @@
+         
+syntax = "proto2";
+package NV.Profiler.Messages;
+// enable arenas for better allocation performance
+option cc_enable_arenas = true;
+message ProfilerStringTable
+{
+    repeated string Strings = 1;
+}
